@@ -28,7 +28,7 @@ CORE="$WOW_ROOT/mangos-classic"
 BOTS="$WOW_ROOT/playerbots"
 
 for d in "$CORE" "$BOTS"; do
-  [[ -d $d ]] || { echo "[错误] 仓库目录不存在：$d（请在三仓库父目录运行，或设 WOW_ROOT）"; exit 1; }
+  [[ -d $d ]] || { echo "[错误] 仓库目录不存在：${d}（请在三仓库父目录运行，或设 WOW_ROOT）"; exit 1; }
 done
 
 echo "==> 建立三层软链接 src/modules/PlayerBots -> ../../../playerbots"

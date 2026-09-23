@@ -13,6 +13,26 @@ set -euo pipefail
 
 echo "==> apt update ..."
 export DEBIAN_FRONTEND=noninteractive
+
+# ---- Docker 容器环境（实测结论，详见 troubleshooting #26） ----
+# docker run 交互容器：必须以 --init 启动（pid 1 = tini 收割退出的 mysqld），
+#   否则 mysql-server 安装将稳定失败（postinst 对僵尸的 kill -0 判存活恒真，
+#   报 Unable to shut down server）——不加 --init 无法使用本脚本。
+# docker build 的 RUN 层：实测直接可行（构建执行环境自带进程托管），无需处理。
+if [[ -f /.dockerenv ]]; then
+  pid1=$(ps -p 1 -o comm= 2>/dev/null || echo unknown)
+  echo "[容器环境] pid 1 = ${pid1}"
+  case "$pid1" in
+    tini|docker-init)
+      echo "[OK]      --init 在位，mysql-server 可正常安装" ;;
+    *)
+      echo "[判定]     docker run 交互容器若 pid 1 是 bash/sh 等（当前即 '${pid1}'）："
+      echo "          实测不加 --init 无法完成 mysql-server 安装——请退出并以"
+      echo "          'docker run --init' 重开容器后再跑本脚本。"
+      echo "          若当前在 docker build 的 RUN 层：实测直接可行，继续即可。" ;;
+  esac
+fi
+
 apt-get update -y
 
 echo "==> 安装编译链与运行依赖（Ubuntu 22.04）..."

@@ -17,13 +17,16 @@
 | `docs/05-database.md` | MySQL 就绪（**Ubuntu auth_socket 大坑**）+ `InstallFullDB.sh` 交互菜单逐步实录与全部陷阱 |
 | `docs/06-configure-and-run.md` | 配置文件、两条启动铁律、**启动日志通关判读**、建号 |
 | `docs/07-client.md` | 客户端接入（realmlist、版本匹配、防火墙）与 playerbots 上手 |
-| `docs/troubleshooting.md` | 20 条坑位速查表（每条都实机踩过/验证过） |
+| `docs/08-character-migration.md` | **角色数据迁移**（源服 → 目标服：迁什么不迁什么、playerbots 开发者须知、版本守门、种子账号替换语义） |
+| `docs/troubleshooting.md` | 坑位速查表（每条都实机踩过/验证过） |
 | `scripts/10-install-deps.sh` | 一键 apt 依赖（sudo） |
 | `scripts/20-prepare-playerbots.sh` | 三层软链接 + out-of-tree 支持在位校验（幂等，不打档——fork 自带） |
 | `scripts/30-build-server.sh` | 配置+编译+安装（默认 gcc-12，可切 clang） |
 | `scripts/40-prepare-database.sh` | MySQL 就绪/auth_socket 处理/装 `InstallFullDB.config` 预备（sudo，交互菜单步骤打印） |
 | `scripts/50-extract-client-data.sh` | 提取包装：工具就位→跑官方 ExtractResources→产物回拷（含 mmaps 缺失降级） |
 | `scripts/60-start-server.sh` | 双进程启动（realmd 后台守护 + mangosd 前台控制台） |
+| `scripts/70-export-character-data.sh` | 【源端】角色数据导出：characters 整库 + realmd 三表 + manifest（SRP6 原密码随行） |
+| `scripts/80-import-character-data.sh` | 【目标端】导入：版本守门 + 确认词 + 整库替换（支持 --dry-run 预演） |
 
 ## 快速开始
 

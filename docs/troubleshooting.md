@@ -26,6 +26,11 @@
 | 20 | 玩家数据位置 / 备份 | 角色背包邮件等都在 `classiccharacters` 库；`mysqldump classiccharacters > backup.sql`（导入 `mysql classiccharacters < backup.sql`） |
 | 21 | fork 同步上游主分支后构建异常 | 同步后**先重跑 `20-prepare-playerbots.sh`**（重建软链接 + 校验 fork 定制在位；`src/CMakeLists.txt` 若冲突出现在 `add_subdirectory` 处，保留 fork 侧带二元目录参数的形态），再 `30` 号脚本增量编译 |
 | 22 | 同步上游后 InstallFullDB 菜单/流程与本文档描述不符 | 上游重构了安装脚本——以脚本实跑表现为准，并回勘修订 `05-database.md`（菜单实录），差异处多为编号位移，逐字确认词机制不变 |
+| 23 | 角色迁移后账号登录被拒 | 70 号按表级 dump 迁 `account`（SRP6 `v`/`s` 随行，原密码有效）；排查源 dump 是否早于玩家改密时间——重新导一份新 dump；详见 `08-character-migration.md` 第 8 节 |
+| 24 | 角色迁移导入时被 80 号拒绝（"源数据比目标 core 新"） | 方向问题：先升级目标服 core（`git pull` + 30 号重编译）再迁移；源旧于目标才是受支持的升级方向（docs/08 第 4 节） |
+| 25 | mangosd 运行中误导入角色库 | 80 号有 8085/3724 端口前置检查拦住正常运行场景；若已发生——停服、用最新 dump 重新走 80 号导入（库处于半新半旧状态不可信） |
+| 26 | **Docker 容器内**跑 10 号脚本装 mysql-server 失败（`dpkg: error processing mysql-server-8.0`，如 `Unable to shut down server with process id NN`） | **实测结论：`docker run` 启动的容器必须加 `--init`，否则本脚本无法完成 mysql-server 安装**——pid 1 为 bash 等普通进程时无人收割退出的 mysqld（成僵尸），postinst 以 `kill -0` 判存活对僵尸恒真，稳定误报"关不掉"（`/var/log/mysql/error.log` 可证 mysqld 实际每轮都 `Shutdown complete`）。两种实测形态：① `docker run --init` → 交互安装 ✅（不加 `--init` 即复现失败）；② **`docker build`（RUN 层执行 10 号脚本）→ 直接可行** ✅，构建执行环境自带进程托管，无需任何处理。容器内无 systemd，服务管理一律 `service mysql start/stop`（脚本已内置兜底） |
+| 27 | Docker 容器部署缺端口映射，客户端连不上 | 容器启动需 `-p 3724:3724 -p 8085:8085`（realmd/mangosd；3306 视拓扑），`realmlist.wtf` 指向宿主机 IP——容器重建趁早（装库编译前成本最低） |
 
 ## 与本体系和上游的关系
 

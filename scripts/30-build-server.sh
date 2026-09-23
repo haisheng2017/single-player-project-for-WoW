@@ -36,7 +36,7 @@ fi
 CC_BIN="${BUILD_CC:-gcc-12}"
 CXX_BIN="${BUILD_CXX:-g++-12}"
 if ! command -v "$CXX_BIN" >/dev/null 2>&1; then
-  echo "[提示] 未找到 $CXX_BIN，回退到 clang/clang++"
+  echo "[提示] 未找到 ${CXX_BIN}，回退到 clang/clang++"
   CC_BIN="clang"; CXX_BIN="clang++"
   command -v "$CXX_BIN" >/dev/null 2>&1 || { echo "[错误] gcc-12 与 clang 均不可用，请先运行 10-install-deps.sh"; exit 1; }
 fi

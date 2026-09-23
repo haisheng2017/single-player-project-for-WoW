@@ -10,6 +10,7 @@
 | CPU 架构 | **x86_64 / amd64**（既能编服务器也能编地图提取器） |
 | | ⚠️ arm64/aarch64：服务器可以编译运行，但**地图提取器会被强制禁用**（core 顶层 `CMakeLists.txt` 的 ARM 检查），需另找一台 x86_64 机器跑提取（产物是跨平台数据文件，拷回即可） |
 | 磁盘 | 约 5 GB（源码 + 编译 + 数据库）；客户端 Data/ 提取另需约 3 GB 余量 |
+| Docker 形态（可选） | 以容器代替物理机/虚拟机时：**`docker run` 必须带 `--init`**（否则 mysql-server 装不上，见 troubleshooting #26）；`docker build` 的 RUN 层执行 10 号脚本直接可行。服务管理用 `service mysql start/stop`，对外记得 `-p 3724:3724 -p 8085:8085` |
 | 网络 | 编译期一次 `git`（拉取仓库）+ 首次 cmake 若缺 zlib 时可能 FetchContent——常规联网即可 |
 
 ## 依赖清单（apt 一键装）
