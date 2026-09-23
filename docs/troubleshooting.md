@@ -33,6 +33,8 @@
 | 27 | Docker 容器部署缺端口映射，客户端连不上 | 容器启动需 `-p 3724:3724 -p 8085:8085`（realmd/mangosd；3306 视拓扑），`realmlist.wtf` 指向宿主机 IP——容器重建趁早（装库编译前成本最低） |
 | 28 | configure 输出 `Could NOT find ZLIB (missing: ZLIB_DIR)` | **正常一行**：CONFIG 模式查找失败的标准输出（只认 `zlibConfig.cmake`，apt 的 zlib1g-dev 不带，装没装都必现）。fork 主分支查找顺序为 CONFIG → **系统 zlib（模块模式）** → FetchContent 联网兜底：装了 `zlib1g-dev` 时紧接应见 `Found ZLIB: ... (found version "1.2.11")`——离线、直链系统包；只有 zlib 开发包完全没装才会走 `Setting up zlib ...`（FetchContent 拉 v1.3.2，需联网），回 01 补装即可。上游原版（非 fork）恒走 FetchContent。详见 `03` 输出解读 |
 | 29 | AHBot 不工作：mangosd 日志 `AhBot is Disabled. Unable to open configuration file ahbot.conf` | AhBot 运行配置读 `run/etc/ahbot.conf`，但 **playerbots 模块没有该文件的 install 规则**——30 号脚本会在 make install 后自动从 `playerbots/ahbot/ahbot.conf.dist.in` 生成（模板无 @ 替换符，直拷即用）。手工补：`cp playerbots/ahbot/ahbot.conf.dist.in run/etc/ahbot.conf` 后重启。另确认构建带了 `-DBUILD_AHBOT=ON`（30 号默认）；`ai_playerbot_ahbot` 表无需另装，InstallFullDB 的 playerbots 步骤已带入 |
+| 30 | 迁移的源服只剩 dump 文件（历史 repack/SPP 形态：mysqldump 5.7 Win32 头、`_all-spp-databases.sql` 合集、realmd 混着 `f_*`/`website_*` 表、账号大量 `RNDBOT*`） | 按 `08` §9 桥接：**分库** dump 还原到临时库（前缀任意，70 号 `DB_PREFIX=` 指过去）→ `account` 三列 ALTER 对齐 → 跑 70/80 正常流程；**绝不导入 `mysql.sql`/合集版**（含系统库授权表，会破坏目标 MySQL 权限体系）；armory/logs/repack 附属表不迁 |
+| 31 | repack 历史服的数据迁移后，realmd 侧账号读写报 `Unknown column 'last_module'` | 源 `account` 是旧列集（带 `last_login`、缺 `last_module`/`module_day`）——按 `08` §9.3 在临时库 ALTER 对齐后重跑 70/80 三表：`DROP COLUMN last_login, ADD COLUMN last_module char(32) DEFAULT '' AFTER locked, ADD COLUMN module_day mediumint(8) unsigned NOT NULL DEFAULT '0' AFTER last_module` |
 
 ## 与本体系和上游的关系
 

@@ -17,7 +17,7 @@
 | `docs/05-database.md` | MySQL 就绪（**Ubuntu auth_socket 大坑**）+ `InstallFullDB.sh` 交互菜单逐步实录与全部陷阱 |
 | `docs/06-configure-and-run.md` | 配置文件、两条启动铁律、**启动日志通关判读**、建号 |
 | `docs/07-client.md` | 客户端接入（realmlist、版本匹配、防火墙）与 playerbots 上手 |
-| `docs/08-character-migration.md` | **角色数据迁移**（源服 → 目标服：迁什么不迁什么、playerbots 开发者须知、版本守门、种子账号替换语义） |
+| `docs/08-character-migration.md` | **角色数据迁移**（源服 → 目标服：迁什么不迁什么、playerbots 开发者须知、版本守门、种子账号替换语义；含"源端只剩 dump 文件"的 repack 桥接） |
 | `docs/troubleshooting.md` | 坑位速查表（每条都实机踩过/验证过） |
 | `scripts/10-install-deps.sh` | 一键 apt 依赖（sudo） |
 | `scripts/20-prepare-playerbots.sh` | 三层软链接 + out-of-tree 支持在位校验（幂等，不打档——fork 自带） |
