@@ -31,6 +31,8 @@
 | 25 | mangosd 运行中误导入角色库 | 80 号有 8085/3724 端口前置检查拦住正常运行场景；若已发生——停服、用最新 dump 重新走 80 号导入（库处于半新半旧状态不可信） |
 | 26 | **Docker 容器内**跑 10 号脚本装 mysql-server 失败（`dpkg: error processing mysql-server-8.0`，如 `Unable to shut down server with process id NN`） | **实测结论：`docker run` 启动的容器必须加 `--init`，否则本脚本无法完成 mysql-server 安装**——pid 1 为 bash 等普通进程时无人收割退出的 mysqld（成僵尸），postinst 以 `kill -0` 判存活对僵尸恒真，稳定误报"关不掉"（`/var/log/mysql/error.log` 可证 mysqld 实际每轮都 `Shutdown complete`）。两种实测形态：① `docker run --init` → 交互安装 ✅（不加 `--init` 即复现失败）；② **`docker build`（RUN 层执行 10 号脚本）→ 直接可行** ✅，构建执行环境自带进程托管，无需任何处理。容器内无 systemd，服务管理一律 `service mysql start/stop`（脚本已内置兜底） |
 | 27 | Docker 容器部署缺端口映射，客户端连不上 | 容器启动需 `-p 3724:3724 -p 8085:8085`（realmd/mangosd；3306 视拓扑），`realmlist.wtf` 指向宿主机 IP——容器重建趁早（装库编译前成本最低） |
+| 28 | configure 输出 `Could NOT find ZLIB (missing: ZLIB_DIR)` | **正常一行**：CONFIG 模式查找失败的标准输出（只认 `zlibConfig.cmake`，apt 的 zlib1g-dev 不带，装没装都必现）。fork 主分支查找顺序为 CONFIG → **系统 zlib（模块模式）** → FetchContent 联网兜底：装了 `zlib1g-dev` 时紧接应见 `Found ZLIB: ... (found version "1.2.11")`——离线、直链系统包；只有 zlib 开发包完全没装才会走 `Setting up zlib ...`（FetchContent 拉 v1.3.2，需联网），回 01 补装即可。上游原版（非 fork）恒走 FetchContent。详见 `03` 输出解读 |
+| 29 | AHBot 不工作：mangosd 日志 `AhBot is Disabled. Unable to open configuration file ahbot.conf` | AhBot 运行配置读 `run/etc/ahbot.conf`，但 **playerbots 模块没有该文件的 install 规则**——30 号脚本会在 make install 后自动从 `playerbots/ahbot/ahbot.conf.dist.in` 生成（模板无 @ 替换符，直拷即用）。手工补：`cp playerbots/ahbot/ahbot.conf.dist.in run/etc/ahbot.conf` 后重启。另确认构建带了 `-DBUILD_AHBOT=ON`（30 号默认）；`ai_playerbot_ahbot` 表无需另装，InstallFullDB 的 playerbots 步骤已带入 |
 
 ## 与本体系和上游的关系
 

@@ -22,6 +22,7 @@ git clone https://github.com/haisheng2017/playerbots.git     playerbots
 
 - **定期同步上游主分支**：`git fetch upstream && git merge upstream/master`（或 rebase，按各 fork 惯例）；上游即 CMaNGOS 社区对应项目（core / classic-db / playerbots 各自的上游）。
 - **fork 允许本地定制**：典型如 `src/CMakeLists.txt` 里为"FetchContent 覆盖变量指向仓库外目录"而做的 out-of-tree 二元目录改动（已提交进 fork 主分支，行的形态见 §4）。按本文档克隆 fork 即开箱自带、无需打档；`scripts/20-prepare-playerbots.sh` 只做**在位校验**：在位 → `[OK]`；不在位（说明当前检出不是 fork 主分支形态，例如误克隆上游、同步上游时丢失该行）→ 报错并给出诊断，不会替你打档。
+- **fork 定制共两处**（截至本文档修订）：① `src/CMakeLists.txt` 的 out-of-tree 二元目录改动（上文，20 号脚本在位校验命中的即是它）；② `dep/src/CMakeLists.txt` 的 zlib 查找——CONFIG 模式未果时**先接系统 zlib（模块模式，apt 的 `zlib1g-dev` 即命中、configure 全程离线）**，都没有才走 FetchContent 联网兜底（上游原版恒联网拉 v1.3.2）。同步上游时若这两个文件出现冲突，分别保留 fork 侧的两处形态。
 - **同步后冲突出现在预期位置时**：`src/CMakeLists.txt` 的 `add_subdirectory` 一行（上游若重构 FetchContent 相关代码）优先保留 **fork 侧带二元目录参数**的形态；数据库脚本类文件（`InstallFullDB.sh`、菜单结构 SQL）如有行为级变化，需回勘本指导 `docs/05-database.md` 并同步修订——菜单号或确认词是实测记录，上游改动会使其失准。
 - 同步上游后**先重跑 `20-prepare-playerbots.sh`**（重建软链接 + 校验 fork 定制在位），再增量编译（`30` 号脚本可直接重跑）。
 

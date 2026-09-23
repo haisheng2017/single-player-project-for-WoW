@@ -28,36 +28,37 @@ CORE="$WOW_ROOT/mangos-classic"
 BOTS="$WOW_ROOT/playerbots"
 
 for d in "$CORE" "$BOTS"; do
-  [[ -d $d ]] || { echo "[错误] 仓库目录不存在：${d}（请在三仓库父目录运行，或设 WOW_ROOT）"; exit 1; }
+  [[ -d $d ]] || { echo "[ERROR] Repository directory not found: ${d} (run from the three-repo parent directory, or set WOW_ROOT)"; exit 1; }
 done
 
-echo "==> 建立三层软链接 src/modules/PlayerBots -> ../../../playerbots"
+echo "==> Creating 3-level symlink src/modules/PlayerBots -> ../../../playerbots"
 mkdir -p "$CORE/src/modules"
 ln -sfn ../../../playerbots "$CORE/src/modules/PlayerBots"
 
 # 链接正确性自检：必须能顺着链接看到 playerbots 的 SQL
 if ls "$CORE"/src/modules/PlayerBots/sql/world/*.sql >/dev/null 2>&1; then
-  echo "[OK]  软链接解析正常（已能看到 sql/world/*.sql）"
+  echo "[OK]  Symlink resolves correctly (sql/world/*.sql visible)"
 else
-  echo "[错误] 软链接解析失败！请检查 mangos-classic/src/modules/PlayerBots 的链接目标层数"
+  echo "[ERROR] Symlink resolution failed! Check the link depth of mangos-classic/src/modules/PlayerBots"
   ls -la "$CORE/src/modules/"
   exit 1
 fi
 
-echo "==> 校验 out-of-tree 支持是否在位（fork 主分支自带，本脚本不打档）"
+echo "==> Verifying out-of-tree support is in place (carried by fork master; this script does not patch)"
 if grep -q 'add_subdirectory(${playerbots_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/modules/PlayerBots)' "$CORE/src/CMakeLists.txt"; then
-  echo "[OK]  out-of-tree 二元目录支持已在位（fork 主分支自带）"
+  echo "[OK]  Out-of-tree binary-directory support is in place (carried by fork master)"
 elif grep -q 'add_subdirectory(${playerbots_SOURCE_DIR})' "$CORE/src/CMakeLists.txt"; then
-  echo "[警告] 当前检出不带 out-of-tree 二元目录支持——fork 主分支已包含该改动。"
-  echo "       请确认 mangos-classic 停在 fork 主分支且包含相应提交："
+  echo "[WARN] This checkout lacks out-of-tree binary-directory support - the fork"
+  echo "       master branch already carries the change. Verify that mangos-classic"
+  echo "       sits on fork master with the relevant commit:"
   echo "         cd $CORE && git remote -v && git log --oneline -1"
-  echo "       （常见原因：误克隆了上游 cmangos 原仓库，或同步上游时丢失了该行——"
-  echo "         参见 docs/troubleshooting.md #4 / #21）"
+  echo "       (Common causes: cloned the upstream cmangos repo by mistake, or lost"
+  echo "        the line while syncing upstream - see docs/troubleshooting.md #4 / #21)"
   exit 1
 else
-  echo "[警告] src/CMakeLists.txt 既非带支持形态也非补丁前形态——上游可能已重构，请人工检查"
+  echo "[WARN] src/CMakeLists.txt matches neither the supported nor the pre-patch form - upstream may have restructured; manual inspection needed"
   exit 1
 fi
 
 echo ""
-echo "完成。下一步：scripts/30-build-server.sh"
+echo "Done. Next step: scripts/30-build-server.sh"

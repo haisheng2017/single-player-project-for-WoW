@@ -11,7 +11,7 @@
 | | ⚠️ arm64/aarch64：服务器可以编译运行，但**地图提取器会被强制禁用**（core 顶层 `CMakeLists.txt` 的 ARM 检查），需另找一台 x86_64 机器跑提取（产物是跨平台数据文件，拷回即可） |
 | 磁盘 | 约 5 GB（源码 + 编译 + 数据库）；客户端 Data/ 提取另需约 3 GB 余量 |
 | Docker 形态（可选） | 以容器代替物理机/虚拟机时：**`docker run` 必须带 `--init`**（否则 mysql-server 装不上，见 troubleshooting #26）；`docker build` 的 RUN 层执行 10 号脚本直接可行。服务管理用 `service mysql start/stop`，对外记得 `-p 3724:3724 -p 8085:8085` |
-| 网络 | 编译期一次 `git`（拉取仓库）+ 首次 cmake 若缺 zlib 时可能 FetchContent——常规联网即可 |
+| 网络 | 拉取四个仓库的 git（一次性）；configure/编译本身已可完全离线——zlib 走 apt 装好的系统包（见下表）、playerbots 走本地目录覆盖，均不联网 |
 
 ## 依赖清单（apt 一键装）
 
@@ -41,7 +41,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
 | `libmysqlclient-dev` | MySQL **开发库**（`mysql.h` + `libmysqlclient.so`）。注意：core 的 CMake 对 MySQL 是**配置阶段强制检查**——条件包含 `BUILD_EXTRACTORS`，也就是说**即使只构建提取器也必须装**（对应 core `CMakeLists.txt:252-258`） |
 | `mysql-client` | `mysql` / `mysqldump` 命令行客户端（`InstallFullDB.sh` 的运行依赖之一） |
 | `mysql-server` | 数据库服务本体（四库都要落在它里面；Ubuntu 特有的 auth_socket 问题见 `05-database.md`） |
-| `zlib1g-dev` / `libbz2-dev` | 压缩库。**可省但建议装**：bz2 找不到会退回用源码树 `dep/` 自带副本（`CMakeLists.txt:272-278` 有兜底）；zlib 找不到会在配置时走 FetchContent 从网上拉——装上就免除该联网环节 |
+| `zlib1g-dev` / `libbz2-dev` | 压缩库。zlib：**fork 主分支的查找顺序为 CONFIG（apt 包无 `zlibConfig.cmake`，恒未果）→ 系统 zlib（模块模式，本包装了即命中——configure 全程离线，mangosd 直接链系统 libz）→ FetchContent 联网拉 v1.3.2（仅系统未装时的兜底，上游原版恒走此路）**。configure 期 `Could NOT find ZLIB (missing: ZLIB_DIR)` 一行属正常，紧接应见 `Found ZLIB: ... (found version "1.2.11")`（解读见 03）。bz2：装了即用系统包（缺装且开提取器时退回编源码树 `dep/src/bzip2`） |
 | `git` + `ca-certificates` | 拉取三仓库、core 构建时打 revision 戳 |
 | `automake autoconf patch libtool grep` | 官方清单的传统配套工具 |
 | `gzip` | `InstallFullDB.sh` 解压 `Full_DB/*.sql.gz` 需要（发行版自带，装上作显式声明） |

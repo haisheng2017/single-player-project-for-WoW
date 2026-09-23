@@ -9,7 +9,7 @@
 set -euo pipefail
 
 # 出处：清单一字不差对应官方 wiki 与 CI，包用途逐条说明见 docs/01-environment.md
-[[ $EUID -eq 0 ]] || { echo "[错误] 请用 sudo 运行本脚本（需要 apt 写权限）"; exit 1; }
+[[ $EUID -eq 0 ]] || { echo "[ERROR] Run this script with sudo (apt write access required)"; exit 1; }
 
 echo "==> apt update ..."
 export DEBIAN_FRONTEND=noninteractive
@@ -21,21 +21,22 @@ export DEBIAN_FRONTEND=noninteractive
 # docker build 的 RUN 层：实测直接可行（构建执行环境自带进程托管），无需处理。
 if [[ -f /.dockerenv ]]; then
   pid1=$(ps -p 1 -o comm= 2>/dev/null || echo unknown)
-  echo "[容器环境] pid 1 = ${pid1}"
+  echo "[CONTAINER] pid 1 = ${pid1}"
   case "$pid1" in
     tini|docker-init)
-      echo "[OK]      --init 在位，mysql-server 可正常安装" ;;
+      echo "[OK]        --init present; mysql-server can be installed normally" ;;
     *)
-      echo "[判定]     docker run 交互容器若 pid 1 是 bash/sh 等（当前即 '${pid1}'）："
-      echo "          实测不加 --init 无法完成 mysql-server 安装——请退出并以"
-      echo "          'docker run --init' 重开容器后再跑本脚本。"
-      echo "          若当前在 docker build 的 RUN 层：实测直接可行，继续即可。" ;;
+      echo "[NOTE]      docker run interactive container with pid 1 = bash/sh"
+      echo "            (currently '${pid1}'): mysql-server install cannot"
+      echo "            complete without --init (verified by live testing). Exit"
+      echo "            and restart the container with 'docker run --init' first."
+      echo "            Inside a docker build RUN layer: works as-is, continue." ;;
   esac
 fi
 
 apt-get update -y
 
-echo "==> 安装编译链与运行依赖（Ubuntu 22.04）..."
+echo "==> Installing build toolchain and runtime dependencies (Ubuntu 22.04) ..."
 # 为什么要 gcc-12/clang：Ubuntu 22.04 默认 gcc/g++ 11 存在编译器内部缺陷，
 # 官方 wiki 明确提示 GCC 11.2/11.3 编不过 TileAssembler.cpp；CI 的双矩阵即 gcc-12 与 clang。
 apt-get install -y \
@@ -48,17 +49,17 @@ apt-get install -y \
   git ca-certificates gzip
 
 echo ""
-echo "==> 关键工具自检："
+echo "==> Key tools self-check:"
 for cmd in gcc-12 g++-12 clang cmake make git mysql; do
   command -v "$cmd" >/dev/null 2>&1 && echo "[OK]  $cmd  ($("$cmd" --version 2>/dev/null | head -1))" \
-                                    || echo "[缺失] $cmd"
+                                    || echo "[MISSING] $cmd"
 done
 
 echo ""
-echo "==> 启动并使 MySQL 服务开机可用 ..."
+echo "==> Enabling and starting the MySQL service ..."
 systemctl enable --now mysql 2>/dev/null || service mysql start || true
 systemctl is-active mysql >/dev/null 2>&1 || service mysql status >/dev/null 2>&1 \
-  || { echo "[错误] MySQL 服务未能启动，请排查：journalctl -u mysql -n 50"; exit 1; }
-echo "[OK]  MySQL 服务运行中"
+  || { echo "[ERROR] MySQL service failed to start; check: journalctl -u mysql -n 50"; exit 1; }
+echo "[OK]  MySQL service is running"
 echo ""
-echo "完成。下一步：scripts/20-prepare-playerbots.sh（无需 sudo）"
+echo "Done. Next step: scripts/20-prepare-playerbots.sh (no sudo needed)"
