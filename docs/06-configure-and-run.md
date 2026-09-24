@@ -37,7 +37,7 @@ cp aiplayerbot.conf.dist aiplayerbot.conf    # playerbots 模块已随 make inst
 
 `ahbot.conf`（默认开箱可用）：
 
-- `AhBot.Enabled = 1`（模板默认已开）；拍卖行刷新节奏等见文件内注释（`AhBot.UpdateIntervalInSeconds` 默认 900 秒）。mangosd 启动日志若见 `AhBot is Disabled. Unable to open configuration file ahbot.conf`——检查 `run/etc/ahbot.conf` 是否在位（一般由 30 号脚本生成，`-a` 启动参数可显式指定其路径）；游戏内 `.ahbot` 命令可现场管理（需 SEC_GAMEMASTER 权限）。
+- `AhBot.Enabled = 1`（模板默认已开）；拍卖行刷新节奏等见文件内注释（`AhBot.UpdateIntervalInSeconds` 默认 900 秒）。mangosd 启动日志若见 `AhBot is Disabled. Unable to open configuration file ahbot.conf`——检查 `run/etc/ahbot.conf` 是否在位（一般由 30 号脚本生成，`-a` 启动参数可显式指定其路径）；游戏内 `.ahbot` 命令可现场管理（需 SEC_GAMEMASTER 权限；其 `command` 表行来自 core `sql/base/ahbot/`，由装库时 `InstallFullDB.config` 的 `AHBOT="YES"` 导入——40 号已兜底并自动验收，早于此机制装的库可单独补导：`mysql classicmangos < mangos-classic/sql/base/ahbot/mangos_command_ahbot.sql`，文件自带 DELETE 可重复执行）。
 
 ## 3. 启动（两条铁律）
 

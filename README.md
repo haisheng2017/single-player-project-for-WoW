@@ -22,7 +22,7 @@
 | `scripts/10-install-deps.sh` | 一键 apt 依赖（sudo） |
 | `scripts/20-prepare-playerbots.sh` | 三层软链接 + out-of-tree 支持在位校验（幂等，不打档——fork 自带） |
 | `scripts/30-build-server.sh` | 配置+编译+安装（默认 gcc-12，可切 clang；AHBot 默认一并编入并生成 ahbot.conf，`BUILD_AHBOT=OFF` 可关） |
-| `scripts/40-prepare-database.sh` | MySQL 就绪/auth_socket 处理/装 `InstallFullDB.config` 预备（sudo，交互菜单步骤打印） |
+| `scripts/40-prepare-database.sh` | MySQL 就绪/auth_socket 处理/装库开关兜底（PLAYERBOTS_DB、AHBOT）+ 装后直连 MySQL 自动验收（sudo；全装路线与确认词打印） |
 | `scripts/50-extract-client-data.sh` | 提取包装：工具就位→跑官方 ExtractResources→产物回拷（含 mmaps 缺失降级） |
 | `scripts/60-start-server.sh` | 双进程启动（realmd 后台守护 + mangosd 前台控制台） |
 | `scripts/70-export-character-data.sh` | 【源端】角色数据导出：characters 整库 + realmd 三表 + manifest（SRP6 原密码随行） |

@@ -9,7 +9,7 @@
 | 3 | `FetchContent_Populate(PlayerBots) is deprecated (CMP0169)` | **弃用警告，无害**，忽略（上游尚未迁移新 API；cmangos CI 同然） |
 | 4 | `add_subdirectory not given a binary directory … is not a subdirectory` | 说明**当前检出不是 fork 主分支形态**（误克隆上游 cmangos 原仓库、或同步上游时丢失了 `add_subdirectory` 的二元目录参数）——fork 主分支自带该支持；核对：`git remote -v` 应为 fork 地址、`git log --oneline -1` 应含相应提交；同步冲突的处理见 #21 |
 | 5 | 任何一次 configure 忘带 `-DFETCHCONTENT_SOURCE_DIR_PLAYERBOTS` | 该次配置会让 FetchContent `rm -rf` 掉 `src/modules/PlayerBots` 并从 GitHub 重克隆——重跑脚本 `20` 号（幂等：重挂链接 + 在位校验） |
-| 6 | 编译全好、装库全好，但 `ai_playerbot_*` 表为 0 | 两个之一：**(a)** 三层软链接写成了两层（死链，InstallFullDB 静默空转、照样打 SUCCESS）——`ls mangos-classic/src/modules/PlayerBots/sql/world/*.sql` 验证；**(b)** `InstallFullDB` 全装流程中 `Type 'Mangosbots'` 确认词漏敲/敲错（回车=静默跳过）——重跑脚本 `5) Advanced → 8)` 补装并逐字敲词 |
+| 6 | 编译全好、装库全好，但 `ai_playerbot_*` 表为 0 | 两个之一：**(a)** 三层软链接写成了两层（死链，InstallFullDB 静默空转、照样打 SUCCESS）——`ls mangos-classic/src/modules/PlayerBots/sql/world/*.sql` 验证；**(b)** 全装时 `PLAYERBOTS_DB` 未置 `YES`（没跑过 40 号或 config 被还原）——playerbots 步骤**静默跳过且无任何报错**（全装路径没有 'Mangosbots' 确认词，别去菜单里找）。排查：sudo 重跑 40 号自动验收（或 `05` 的表计数查询，world 12 / characters 11）；补装走 `5) Advanced → 8) Create and fill playerbots db`（该路径才有 'Mangosbots' 词，逐字敲） |
 | 7 | InstallFullDB 设置菜单报 `ERROR 1045 (Access denied for user 'mangos')` | **首装正常现象**（mangos 用户尚未创建）：菜单 `2` → root 用户名**手敲 root**（直接回车=空用户名必失败）→ 密码静默输入（无回显属正常）→ 通过后 `9` 进主菜单 |
 | 8 | Ubuntu：`sudo mysql` 能进，`mysql -uroot -p` 无论如何被拒 | root 用 `auth_socket` 插件——见 `05` 第 1 节或跑脚本 `40` 号：`ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY '<密码>';` |
 | 9 | root 密码忘了 | `systemctl stop mysql` → `mysqld --skip-grant-table --skip-networking &` → `mysql -uroot` → `FLUSH PRIVILEGES;` + `ALTER USER ...` → kill 手动进程 → `systemctl start mysql` |
