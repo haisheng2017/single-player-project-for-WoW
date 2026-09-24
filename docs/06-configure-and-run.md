@@ -14,6 +14,8 @@ cp aiplayerbot.conf.dist aiplayerbot.conf    # playerbots 模块已随 make inst
 # 创建为可用文件（AHBot 默认编入；若以 BUILD_AHBOT=OFF 构建，则没有此文件也不需要）
 ```
 
+> 上述拷贝无需死记：`60-start-server.sh` 启动前会对这四个文件做同款兜底——缺哪个 `.conf` 就从对应 `.dist` 自动补齐，**已存在的一律不覆盖**（手改内容不会被碰到；补齐了哪些会在控制台点名提示）。手动 cp 与之完全等价，本节清单保留是为说明文件从哪来、改哪份生效。
+
 ## 2. 必要检查项
 
 `mangosd.conf`（其余保持默认即可单机运行）：

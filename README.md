@@ -24,7 +24,7 @@
 | `scripts/30-build-server.sh` | 配置+编译+安装（默认 gcc-12，可切 clang；AHBot 默认一并编入并生成 ahbot.conf，`BUILD_AHBOT=OFF` 可关） |
 | `scripts/40-prepare-database.sh` | MySQL 就绪/auth_socket 处理/装库开关兜底（PLAYERBOTS_DB、AHBOT）+ 装后直连 MySQL 自动验收（sudo；全装路线与确认词打印） |
 | `scripts/50-extract-client-data.sh` | 提取包装：工具就位→跑官方 ExtractResources→产物回拷（含 mmaps 缺失降级） |
-| `scripts/60-start-server.sh` | 双进程启动（realmd 后台守护 + mangosd 前台控制台） |
+| `scripts/60-start-server.sh` | 双进程启动（realmd 后台守护 + mangosd 前台控制台；缺 .conf 自动从 .dist 补齐、已存在不覆盖） |
 | `scripts/70-export-character-data.sh` | 【源端】角色数据导出：characters 整库 + realmd 三表 + manifest（SRP6 原密码随行） |
 | `scripts/80-import-character-data.sh` | 【目标端】导入：版本守门 + 确认词 + 整库替换（支持 --dry-run 预演） |
 
@@ -53,7 +53,7 @@ cd classic-db && bash InstallFullDB.sh    # 菜单路线与确认词陷阱：务
 # 5) 提取客户端数据（需要一份 1.12.x 客户端的 Data/ 目录；1.12.1/1.12.2/1.12.3 任一）
 bash     single-player-project-for-WoW/scripts/50-extract-client-data.sh /path/to/WoW112client
 
-# 6) 复制正式配置（去 .dist 后缀，见 06）后启动
+# 6) 启动（缺 .conf 时 60 号自动从 .dist 补齐；必检项见 06 §2）
 bash     single-player-project-for-WoW/scripts/60-start-server.sh
 
 # 7) 建号 → 客户端 realmlist → 进游戏

@@ -14,7 +14,8 @@
 # 用法：  bash scripts/60-start-server.sh
 #   可选环境变量：WOW_ROOT（默认当前目录）
 # 停止：  前台 mangosd 用 Ctrl-C；后台 realmd 用 pkill realmd 或见下方提示
-# 幂等：  重复运行会先检测端口占用
+# 幂等：  重复运行会先检测端口占用；缺 .conf 时自动从 .dist 补齐（已存在的一
+#         律不覆盖，手改内容不会被碰到）
 # ==============================================================================
 set -euo pipefail
 
@@ -23,13 +24,27 @@ BIN="$WOW_ROOT/run/bin"
 ETC="$WOW_ROOT/run/etc"
 LOG_DIR="$WOW_ROOT/run/log"
 
-for f in "$BIN/mangosd" "$BIN/realmd" "$ETC/mangosd.conf" "$ETC/realmd.conf" "$ETC/aiplayerbot.conf"; do
-  [[ -e "$f" ]] || { echo "[错误] 缺少 $f —— 请先完成 docs/06 中的配置拷贝（cp *.conf.dist 去后缀）"; exit 1; }
+for f in "$BIN/mangosd" "$BIN/realmd"; do
+  [[ -e "$f" ]] || { echo "[错误] 缺少二进制 $f —— 先跑 scripts/30-build-server.sh"; exit 1; }
 done
 
-# 配置文件尚未拷贝齐全的兜底（mangosd/realmd 的 .conf 若缺失时可一键补齐）
-if [[ ! -e "$ETC/anticheat.conf" && -e "$ETC/anticheat.conf.dist" ]]; then
-  cp "$ETC/anticheat.conf.dist" "$ETC/anticheat.conf"; echo "[OK]  已补齐 anticheat.conf"
+# 配置文件兜底：缺失的 .conf 自动从对应 .dist 拷贝；已存在的一律不动（默认装法下
+# .dist 默认值即可跑通，详见 docs/06 §2 的必检项说明）。
+COPIED=""
+for f in mangosd realmd aiplayerbot anticheat; do
+  if [[ -e "$ETC/$f.conf" ]]; then
+    :
+  elif [[ -e "$ETC/$f.conf.dist" ]]; then
+    cp "$ETC/$f.conf.dist" "$ETC/$f.conf"
+    COPIED="${COPIED}${COPIED:+ }$f.conf"
+    echo "[OK]  已从 .dist 模板补齐 $f.conf"
+  else
+    echo "[错误] $ETC 下既无 $f.conf 也无 $f.conf.dist —— 先跑 scripts/30-build-server.sh（make install 会装入 .dist 模板）"
+    exit 1
+  fi
+done
+if [[ -n "$COPIED" ]]; then
+  echo "[提示] 本次新补齐：$COPIED —— 若装库时改过数据库账号/密码，请核对 mangosd.conf / realmd.conf 的 DatabaseInfo（docs/06 §2）"
 fi
 
 port_busy() { ss -ltn "sport = :$1" 2>/dev/null | grep -q LISTEN; }

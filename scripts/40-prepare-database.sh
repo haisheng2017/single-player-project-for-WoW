@@ -193,7 +193,7 @@ report 4  "$AH" ".ahbot command rows (world 'command' table)" \
 
 echo ""
 if [[ "$FAIL" -eq 0 ]]; then
-  echo "[OK] Database acceptance checks all green. Next: strip .dist in run/etc (docs/06) -> scripts/60-start-server.sh"
+  echo "[OK] Database acceptance checks all green. Next: scripts/60-start-server.sh (it auto-copies any missing .conf from its .dist; required checks: docs/06 section 2)"
 else
   echo "[ERROR] Some items are not in place (see the [MISSING] lines above); fix them, then re-run this script"
   exit 1
