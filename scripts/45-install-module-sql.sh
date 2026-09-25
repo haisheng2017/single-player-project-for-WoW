@@ -11,6 +11,8 @@
 #   achievements         → 01_world_data.sql 再 02_world_update.sql
 #                          （跳过西班牙文 03_world_locales.sql）
 #   barber               → world_classic.sql（不要 world_tbc.sql）
+#   zhCN supplements     → classic-db/locales/Chinese/supplements/01..05_*.sql
+#                          （补缺/纠错 loc4；ON DUPLICATE KEY UPDATE，可重跑）
 #
 # 连接信息优先取 classic-db/InstallFullDB.config；可用环境变量覆盖：
 #   MYSQL_HOST MYSQL_PORT MYSQL_USERNAME MYSQL_PASSWORD WORLD_DB_NAME
@@ -23,7 +25,8 @@ set -euo pipefail
 
 WOW_ROOT="${WOW_ROOT:-$(pwd)}"
 CORE="$WOW_ROOT/mangos-classic"
-CONFIG="$WOW_ROOT/classic-db/InstallFullDB.config"
+DBREPO="$WOW_ROOT/classic-db"
+CONFIG="$DBREPO/InstallFullDB.config"
 
 for folder in transmog dualspec achievements barber; do
   if [[ ! -d "$CORE/src/modules/$folder" ]]; then
@@ -50,7 +53,7 @@ if ! command -v "$MYSQL_BIN" >/dev/null 2>&1; then
 fi
 
 export MYSQL_PWD="$MYSQL_PASSWORD"
-MY=("$MYSQL_BIN" -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USERNAME" "$WORLD_DB_NAME")
+MY=("$MYSQL_BIN" -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USERNAME" --default-character-set=utf8mb4 "$WORLD_DB_NAME")
 
 if ! "${MY[@]}" -e "SELECT 1;" >/dev/null 2>&1; then
   echo "[ERROR] Cannot connect to $WORLD_DB_NAME as $MYSQL_USERNAME@$MYSQL_HOST:$MYSQL_PORT"
@@ -77,7 +80,29 @@ import_sql "transmog world"     "$MOD/transmog/sql/install/world/world.sql"
 import_sql "dualspec world"     "$MOD/dualspec/sql/install/world/world.sql"
 import_sql "achievements 01"    "$MOD/achievements/sql/install/world/01_world_data.sql"
 import_sql "achievements 02"    "$MOD/achievements/sql/install/world/02_world_update.sql"
-import_sql "barber classic"     "$MOD/barber/sql/install/world/world_classic.sql"
+# barber SQL 非完全幂等（npc_text / 椅子 INSERT）；已装则跳过。
+BARBER_ENTRY=190012
+BARBER_N=$("${MY[@]}" -N -e "SELECT COUNT(*) FROM creature_template WHERE entry=$BARBER_ENTRY;" 2>/dev/null || echo 0)
+if [[ "${BARBER_N//[^0-9]/}" -gt 0 ]]; then
+  echo "[SKIP] barber classic (creature_template entry $BARBER_ENTRY already present)"
+else
+  import_sql "barber classic"     "$MOD/barber/sql/install/world/world_classic.sql"
+fi
+
+# 主中文包由 40 号在库空时导入 locales/Chinese/*.sql；此处补缺/纠错（含任务 707）。
+SUPP="$DBREPO/locales/Chinese/supplements"
+if [[ -d "$SUPP" ]]; then
+  echo ""
+  echo "==> zhCN locale supplements ($SUPP)"
+  import_sql "zhCN quest fixup"       "$SUPP/01_locales_quest_zhCN_fixup.sql"
+  import_sql "zhCN creature fixup"    "$SUPP/02_locales_creature_zhCN_fixup.sql"
+  import_sql "zhCN item fixup"        "$SUPP/03_locales_item_zhCN_fixup.sql"
+  import_sql "zhCN gameobject fixup"  "$SUPP/04_locales_gameobject_zhCN_fixup.sql"
+  import_sql "zhCN page_text fixup"   "$SUPP/05_locales_page_text_zhCN_fixup.sql"
+else
+  echo ""
+  echo "[WARN] zhCN supplements missing: $SUPP — skip (clone classic-db with locales/Chinese/supplements)"
+fi
 
 echo ""
 echo "Done (world SQL only; no character SQL, no DisplayId/coord patches)."

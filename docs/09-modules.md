@@ -75,6 +75,9 @@ bash scripts/45-install-module-sql.sh
 | dualspec | `sql/install/world/world.sql` |
 | achievements | `01_world_data.sql` → `02_world_update.sql`（**不**导西班牙文 `03_world_locales.sql`） |
 | barber | `world_classic.sql`（**不要** `world_tbc.sql`） |
+| zhCN 补缺 | `classic-db/locales/Chinese/supplements/01..05_*_zhCN_fixup.sql`（目录缺失则跳过并告警） |
+
+主中文包仍由 `40-prepare-database.sh` 在 locale 表为空时导入 `locales/Chinese/*.sql`；45 号在其后用 supplements 补缺/纠错（含任务 707），可重复执行。
 
 **不导入角色库。** 角色库脚本会 `DROP` 双天赋/成就进度表；需要时手工导入，并先备份 `classiccharacters`。
 
