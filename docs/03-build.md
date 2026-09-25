@@ -14,7 +14,12 @@ CC=gcc-12 CXX=g++-12 cmake ../mangos-classic \
   -DBUILD_PLAYERBOTS=ON \
   -DBUILD_AHBOT=ON \
   -DFETCHCONTENT_SOURCE_DIR_PLAYERBOTS="$WOW_ROOT/playerbots" \
-  -DBUILD_EXTRACTORS=ON
+  -DBUILD_EXTRACTORS=ON \
+  -DBUILD_MODULES=ON \
+  -DBUILD_MODULE_TRANSMOG=ON \
+  -DBUILD_MODULE_DUALSPEC=ON \
+  -DBUILD_MODULE_ACHIEVEMENTS=ON \
+  -DBUILD_MODULE_BARBER=ON
 make -j"$(nproc)"
 make install
 ```
@@ -33,6 +38,7 @@ make install
 | `-DBUILD_AHBOT=ON` | 拍卖行机器人默认编入：宏经 `src/game/CMakeLists.txt:145-148` 注入 core，激活 World 启动/更新钩子与 `.ahbot` 管理命令（`World.cpp`/`Chat.cpp` 的 `#ifdef BUILD_AHBOT`）；AhBot 源码本就随模块编译，此开关只控制 core 侧钩子。跑脚本时可用环境变量 `BUILD_AHBOT=OFF` 关闭 |
 | `-DFETCHCONTENT_SOURCE_DIR_PLAYERBOTS=.../playerbots` | **双保险之二**：绝对路径指向本地克隆，FetchContent 不再联网、不再 `rm -rf` 本地目录（原理见 02） |
 | `-DBUILD_EXTRACTORS=ON` | 顺带把地图提取器编出来（x86_64 可用；arm64 会被 core 顶层 CMake 自动置 OFF——报一行 `BUILD_EXTRACTORS forced to OFF. Not supported on ARM architecture`，属预期） |
+| `-DBUILD_MODULES=ON` 与四个 `-DBUILD_MODULE_*=ON` | 编入 transmog / dualspec / achievements / barber（及框架 `modules`）。源码须已由 20 号挂到 `src/modules/<folder>`；细节见 `09-modules.md` |
 
 ### 顺带的高频构建参数（按需）
 
@@ -59,14 +65,18 @@ run/
     ├── realmd.conf.dist
     ├── anticheat.conf.dist
     ├── aiplayerbot.conf.dist   # 由 playerbots 模块自己的 install 规则装入（playerbots/CMakeLists.txt）
+    ├── transmog.conf.dist      # BUILD_MODULES 时由各模块 install 装入
+    ├── dualspec.conf.dist
+    ├── achievements.conf.dist
+    ├── barber.conf.dist
     └── ahbot.conf              # 无上游 install 规则——30 号脚本在安装后从
                                 #   playerbots/ahbot/ahbot.conf.dist.in 直接拷贝生成（模板无 @ 替换符）
 ```
 
-> 曾经流行的一些教程说"aiplayerbot.conf 不随 make install 安装、需从构建目录手拷"——那是旧版模块的行为，现在的模块自带 install 规则，`run/etc/` 里就有 **`aiplayerbot.conf.dist`**，去后缀即用（见 06）。
+> 曾经流行的一些教程说"aiplayerbot.conf 不随 make install 安装、需从构建目录手拷"——那是旧版模块的行为，现在的模块自带 install 规则，`run/etc/` 里就有 **`aiplayerbot.conf.dist`**，去后缀即用（见 06）。四个外观模块同理：`.dist` 随 install 装入，首次 Enable 由 60 号处理（见 `09`）。
 
 ## 编译耗时参考
 
 Ubuntu 22.04 CI（2 核 runner、PCH）全量约 10-20 分钟；典型桌面/服务器 CPU（`nproc` ≥ 4）会更快。内存小于 2 GB 的低配机建议把 `make -j$(nproc)` 降为 `make -j2` 以防 OOM。
 
-下一篇：`04-extract.md` —— 从客户端提取四个数据目录。
+下一篇：`04-extract.md` —— 从客户端提取四个数据目录。模块专项：`09-modules.md`。

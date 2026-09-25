@@ -1,6 +1,6 @@
-# 02 · 三仓库就位与 playerbots 挂载（双保险）
+# 02 · 仓库就位与模块挂载（playerbots 双保险 + 四个外观模块）
 
-> 对应自动化脚本：`scripts/20-prepare-playerbots.sh`。本篇是整个项目**最反直觉**的一步，原理请至少通读一遍再跑脚本。
+> 对应自动化脚本：`scripts/20-prepare-playerbots.sh`。playerbots 挂载原理请至少通读一遍再跑脚本；四个外观/天赋模块见 `09-modules.md`。
 
 ## 1. 拉取三仓库（同级摆放，以主分支为准）
 
@@ -33,6 +33,7 @@ git clone https://github.com/haisheng2017/playerbots.git     playerbots
 | `mangos-classic/` | C++ **服务端核心**：编译出 `mangosd`（世界服，端口 8085）与 `realmd`（登录认证，端口 3724）；内置 ScriptDev2 脚本引擎、反作弊、地图提取工具（x86_64） |
 | `classic-db/` | **世界内容数据库**（NPC/任务/物品/掉落……全部游戏内容）：`Full_DB/` 全量快照 + 增量 `Updates/`，经 `InstallFullDB.sh` 灌入 MySQL |
 | `playerbots/` | **AI 机器人模块**（ike3 版）：不是独立程序，是**编译进 mangosd 的模块**；自备需入库的 SQL 与 `aiplayerbot.conf` 配置；附带 `ahbot/`（拍卖行机器人，构建开关控制） |
+| `cmangos-modules/` + `cmangos-transmog/` 等 | **四个外观/天赋模块 + 框架**（见 `09-modules.md`）：与上表同级克隆，由 20 号挂到 `src/modules/`；30 号默认 `BUILD_MODULES=ON` |
 
 支持的客户端版本：**1.12.1 (build 5875) / 1.12.2 (6005) / 1.12.3 (6141)** 任一（core 源码 `src/game/Globals/SharedDefines.h` 的 `EXPECTED_MANGOSD_CLIENT_BUILD`）。
 
@@ -81,6 +82,8 @@ ln -sfn ../../../playerbots mangos-classic/src/modules/PlayerBots
 ```bash
 ls mangos-classic/src/modules/PlayerBots/sql/world/*.sql   # 应列出 ai_playerbot_*.sql
 grep -n "modules/PlayerBots)" mangos-classic/src/CMakeLists.txt  # fork 主分支形态应命中带二元目录参数的那行
+# 四个模块（20 号跑过后）：
+ls -la mangos-classic/src/modules/{modules,transmog,dualspec,achievements,barber}/CMakeLists.txt
 ```
 
-下一篇：`03-build.md` —— 编译。
+下一篇：`03-build.md` —— 编译。模块专项：`09-modules.md`。

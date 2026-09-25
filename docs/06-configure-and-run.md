@@ -12,9 +12,14 @@ cp anticheat.conf.dist  anticheat.conf
 cp aiplayerbot.conf.dist aiplayerbot.conf    # playerbots 模块已随 make install 装入本目录
 # ahbot.conf 不在上表：它没有 install 规则，30 号脚本在 make install 后已直接
 # 创建为可用文件（AHBot 默认编入；若以 BUILD_AHBOT=OFF 构建，则没有此文件也不需要）
+# 四个外观/天赋模块（BUILD_MODULES 时 make install 装入 .dist）：
+# cp transmog.conf.dist transmog.conf         # 模板默认 Enable=0
+# cp dualspec.conf.dist dualspec.conf
+# cp achievements.conf.dist achievements.conf
+# cp barber.conf.dist barber.conf             # 模板默认 Enable=1
 ```
 
-> 上述拷贝无需死记：`60-start-server.sh` 启动前会对这四个文件做同款兜底——缺哪个 `.conf` 就从对应 `.dist` 自动补齐，**已存在的一律不覆盖**（手改内容不会被碰到；补齐了哪些会在控制台点名提示）。手动 cp 与之完全等价，本节清单保留是为说明文件从哪来、改哪份生效。
+> 上述拷贝无需死记：`60-start-server.sh` 启动前会对核心四个文件 + 四个模块文件做同款兜底——缺哪个 `.conf` 就从对应 `.dist` 自动补齐，**已存在的一律不覆盖**。对 transmog / dualspec / achievements，**首次**从 `.dist` 生成时还会把 `Enable` 改成 `1`（barber 模板已是 1）。手动 cp 与之完全等价；模块细节见 `09-modules.md`。
 
 ## 2. 必要检查项
 
@@ -40,6 +45,11 @@ cp aiplayerbot.conf.dist aiplayerbot.conf    # playerbots 模块已随 make inst
 `ahbot.conf`（默认开箱可用）：
 
 - `AhBot.Enabled = 1`（模板默认已开）；拍卖行刷新节奏等见文件内注释（`AhBot.UpdateIntervalInSeconds` 默认 900 秒）。mangosd 启动日志若见 `AhBot is Disabled. Unable to open configuration file ahbot.conf`——检查 `run/etc/ahbot.conf` 是否在位（一般由 30 号脚本生成，`-a` 启动参数可显式指定其路径）；游戏内 `.ahbot` 命令可现场管理（需 SEC_GAMEMASTER 权限；其 `command` 表行来自 core `sql/base/ahbot/`，由装库时 `InstallFullDB.config` 的 `AHBOT="YES"` 导入——40 号已兜底并自动验收，早于此机制装的库可单独补导：`mysql classicmangos < mangos-classic/sql/base/ahbot/mangos_command_ahbot.sql`，文件自带 DELETE 可重复执行）。
+
+四个模块 conf（`transmog` / `dualspec` / `achievements` / `barber`）：
+
+- 首次由 60 号从 `.dist` 生成时，前三个的 `*.Enable` 会被改成 `1`；改配置后须重启 mangosd。
+- 世界 SQL 用 `45-install-module-sql.sh`（InstallFullDB 之后）；双天赋入口是生物 **100601**，不是人型 NPC。验证与排障见 `09-modules.md` / `troubleshooting.md` #32–#36。
 
 ## 3. 启动（两条铁律）
 
