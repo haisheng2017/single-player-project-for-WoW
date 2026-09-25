@@ -57,8 +57,8 @@ sudo bash single-player-project-for-WoW/scripts/40-prepare-database.sh
 cd classic-db && bash InstallFullDB.sh    # 菜单路线与确认词陷阱：务必先读 05 第 2.3 节
 
 # 4b) 四个模块的世界 SQL（不导角色库；水晶 DisplayId 见 troubleshooting）
-bash     ../single-player-project-for-WoW/scripts/45-install-module-sql.sh
-cd ..
+cd .. && bash     single-player-project-for-WoW/scripts/45-install-module-sql.sh
+
 
 # 5) 提取客户端数据（需要一份 1.12.x 客户端的 Data/ 目录；1.12.1/1.12.2/1.12.3 任一）
 bash     single-player-project-for-WoW/scripts/50-extract-client-data.sh /path/to/WoW112client
