@@ -17,6 +17,8 @@
 #                          随全装自动入库；
 #   AHBOT="YES"        —— 顺带导入 core 的 sql/base/ahbot/（游戏内 .ahbot 命令的
 #                          command 表行，与 30 号默认 BUILD_AHBOT=ON 呼应）。
+#   四库已在时，本脚本会把 classic-db/locales/Chinese/*.sql 补进世界库
+#   （InstallFullDB 的 locales/*.sql 匹配不到这个子目录）。对应表已有行则跳过。
 #
 # 自动验收（装库完成后重跑本脚本即触发）：
 #   用 config 里的 mangos 应用账号直连 MySQL，自动检查：四个库、playerbots 的
@@ -155,7 +157,67 @@ if [[ "${NDB:-0}" != "4" ]]; then
   exit 0
 fi
 
-# 四库都在：直连验收（playerbots 入库状态）
+# 四库都在：补简体中文。怪物表用血色士兵（entry 4286）判断，避免被
+# 幻化/双天赋 NPC（190010、100601）那两行空翻译挡住。其余表仍按“已有行则跳过”。
+import_zh_if_empty() {  # <表名> <文件名> [探测 SQL] [期望结果]
+  local table="$1" file="$2" probe="${3:-}" expect="${4:-}" n got
+  if [[ -n "$probe" ]]; then
+    got=$("${MYDB[@]}" --default-character-set=utf8mb4 -e "$probe" "$WORLD_DB_NAME" 2>/dev/null || echo -1)
+    if [[ "$got" == "$expect" ]]; then
+      echo "[SKIP] $table already has zhCN ($expect)"
+      return
+    fi
+  else
+    n=$("${MYDB[@]}" -e "SELECT COUNT(*) FROM \`$table\`;" "$WORLD_DB_NAME" 2>/dev/null || echo -1)
+    [[ -z "$n" ]] && n=-1
+    if [[ "$n" == "0" ]]; then
+      :
+    elif [[ "$n" -gt 0 ]]; then
+      echo "[SKIP] $table already has $n rows"
+      return
+    else
+      echo "[MISSING] could not read $table"
+      FAIL=1
+      return
+    fi
+  fi
+  echo "[..]  importing locales/Chinese/$file"
+  "${MYDB[@]}" --default-character-set=utf8mb4 "$WORLD_DB_NAME" < "$DBREPO/locales/Chinese/$file"
+  echo "[OK]  imported $file"
+}
+
+echo ""
+echo "==> zhCN locales (classic-db/locales/Chinese)"
+FAIL=0
+import_zh_if_empty locales_creature    locales_creature.sql \
+  "SELECT name_loc4 FROM locales_creature WHERE entry=4286" "血色士兵"
+import_zh_if_empty locales_gameobject  locales_gameobject.sql
+import_zh_if_empty locales_item        locales_item.sql
+import_zh_if_empty locales_page_text   locales_page_text.sql
+# locales/Chinese/locales_quest.sql writes CompletedText_loc4, which the stock
+# Full_DB locales_quest table does not have. Add the eight columns once.
+QCOL=$("${MYDB[@]}" -e "SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema='$WORLD_DB_NAME' AND table_name='locales_quest' AND column_name='CompletedText_loc4';" 2>/dev/null || echo -1)
+if [[ "$QCOL" == "0" ]]; then
+  echo "[..]  adding locales_quest.CompletedText_loc1..8"
+  "${MYDB[@]}" "$WORLD_DB_NAME" -e "
+    ALTER TABLE locales_quest
+      ADD COLUMN CompletedText_loc1 text AFTER EndText_loc8,
+      ADD COLUMN CompletedText_loc2 text AFTER CompletedText_loc1,
+      ADD COLUMN CompletedText_loc3 text AFTER CompletedText_loc2,
+      ADD COLUMN CompletedText_loc4 text AFTER CompletedText_loc3,
+      ADD COLUMN CompletedText_loc5 text AFTER CompletedText_loc4,
+      ADD COLUMN CompletedText_loc6 text AFTER CompletedText_loc5,
+      ADD COLUMN CompletedText_loc7 text AFTER CompletedText_loc6,
+      ADD COLUMN CompletedText_loc8 text AFTER CompletedText_loc7;"
+  echo "[OK]  locales_quest columns added"
+elif [[ "$QCOL" != "1" ]]; then
+  echo "[MISSING] could not check locales_quest.CompletedText_loc4"
+  FAIL=1
+fi
+import_zh_if_empty locales_quest       locales_quest.sql
+
+# 直连验收（playerbots 入库状态）
 report() {  # <期望值> <实际值> <检查项> <未达标时的指引>
   local exp="$1" got="$2" what="$3" hint="$4"
   if [[ "$got" == "$exp" ]]; then
@@ -165,7 +227,6 @@ report() {  # <期望值> <实际值> <检查项> <未达标时的指引>
     FAIL=1
   fi
 }
-FAIL=0
 
 echo ""
 echo "==> All four databases present ($WORLD_DB_NAME / $CHAR_DB_NAME / $REALM_DB_NAME / $LOGS_DB_NAME) -- acceptance check:"
@@ -190,6 +251,9 @@ report 8  "$IX" "playerbots loot indexes (world loot_template tables)" \
   "present but incomplete = ai_playerbot_indexes.sql aborted midway -- DROP the existing ones first (docs/05 list), then re-apply"
 report 4  "$AH" ".ahbot command rows (world 'command' table)" \
   "AHBOT was not YES at install time (upstream config default is NO) -- this script has set it to YES; to backfill the existing DB run once manually: mysql -u<config-user> -p $WORLD_DB_NAME < <core>/sql/base/ahbot/mangos_command_ahbot.sql"
+ZN=$("${MYDB[@]}" --default-character-set=utf8mb4 -e "SELECT name_loc4 FROM locales_creature WHERE entry=4286;" "$WORLD_DB_NAME" 2>/dev/null || echo -1)
+report "血色士兵" "$ZN" "zhCN name of creature 4286 (Scarlet Soldier)" \
+  "locales_creature already had rows, so the Chinese INSERT was skipped; check name_loc4"
 
 echo ""
 if [[ "$FAIL" -eq 0 ]]; then
