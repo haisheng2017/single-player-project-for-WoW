@@ -21,9 +21,13 @@
 set -euo pipefail
 
 WOW_ROOT="${WOW_ROOT:-$(pwd)}"
+# Absolute paths before any cd, so the later copy uses the same directories the extractor wrote.
+WOW_ROOT="$(cd "$WOW_ROOT" && pwd)"
 CLIENT_DIR="${1:-}"
 
 [[ -n "$CLIENT_DIR" ]] || { echo "Usage: bash scripts/50-extract-client-data.sh /path/to/WoW112client"; exit 1; }
+[[ -d "$CLIENT_DIR" ]] || { echo "[ERROR] Client directory not found: $CLIENT_DIR"; exit 1; }
+CLIENT_DIR="$(cd "$CLIENT_DIR" && pwd)"
 [[ -d "$CLIENT_DIR/Data" ]] || { echo "[ERROR] No Data/ directory under $CLIENT_DIR -- Linux is case-sensitive, it must be Data with a capital D"; exit 1; }
 
 TOOLS_DIR="$WOW_ROOT/run/bin/tools"
