@@ -11,49 +11,59 @@
 | 路径 | 内容 |
 |---|---|
 | `docs/01-environment.md` | Ubuntu 22.04 依赖清单与逐包解释（gcc-11 坑、哪些"老教程依赖"其实不需要） |
-| `docs/02-source-layout.md` | 三仓库布局与 **playerbots 挂载双保险**（三层软链接 + FetchContent 覆盖变量；out-of-tree 支持由 fork 主分支自带）——全项目最反直觉的一步 |
+| `docs/02-source-layout.md` | 仓库布局与 **playerbots / 模块挂载**（三层软链接 + FetchContent 覆盖变量；out-of-tree 支持由 fork 主分支自带）——全项目最反直觉的一步 |
 | `docs/03-build.md` | cmake/make 全参数解释、产物布局、常见配置输出解读 |
 | `docs/04-extract.md` | 从 1.12.x 客户端 `Data/` 提取 `dbc/maps/vmaps/mmaps`（am64 机器的替代路径） |
 | `docs/05-database.md` | MySQL 就绪（**Ubuntu auth_socket 大坑**）+ `InstallFullDB.sh` 交互菜单逐步实录与全部陷阱 |
 | `docs/06-configure-and-run.md` | 配置文件、两条启动铁律、**启动日志通关判读**、建号 |
 | `docs/07-client.md` | 客户端接入（realmlist、版本匹配、防火墙）与 playerbots 上手 |
 | `docs/08-character-migration.md` | **角色数据迁移**（源服 → 目标服：迁什么不迁什么、playerbots 开发者须知、版本守门、种子账号替换语义；含"源端只剩 dump 文件"的 repack 桥接） |
-| `docs/troubleshooting.md` | 坑位速查表（每条都实机踩过/验证过） |
+| `docs/09-modules.md` | **四个外观/天赋模块**（transmog / dualspec / achievements / barber）：克隆、三层软链接、编译开关、世界 SQL、Enable、启动日志验证 |
+| `docs/troubleshooting.md` | 坑位速查表（每条都实机踩过/验证过；含双天赋水晶不可见） |
 | `scripts/10-install-deps.sh` | 一键 apt 依赖（sudo） |
-| `scripts/20-prepare-playerbots.sh` | 三层软链接 + out-of-tree 支持在位校验（幂等，不打档——fork 自带） |
-| `scripts/30-build-server.sh` | 配置+编译+安装（默认 gcc-12，可切 clang；AHBot 默认一并编入并生成 ahbot.conf，`BUILD_AHBOT=OFF` 可关） |
+| `scripts/20-prepare-playerbots.sh` | PlayerBots + 五个模块软链 + out-of-tree 在位校验（幂等，不打档——fork 自带） |
+| `scripts/30-build-server.sh` | 配置+编译+安装（默认 gcc-12；AHBot 与四个模块默认编入；`BUILD_AHBOT=OFF` 可关 AHBot） |
 | `scripts/40-prepare-database.sh` | MySQL 就绪/auth_socket 处理/装库开关兜底（PLAYERBOTS_DB、AHBOT）+ 装后直连 MySQL 自动验收（sudo；全装路线与确认词打印） |
+| `scripts/45-install-module-sql.sh` | 导入四个模块的世界库 SQL（不导角色库、不改水晶 DisplayId/坐标） |
 | `scripts/50-extract-client-data.sh` | 提取包装：工具就位→跑官方 ExtractResources→产物回拷（含 mmaps 缺失降级） |
-| `scripts/60-start-server.sh` | 双进程启动（realmd 后台守护 + mangosd 前台控制台；缺 .conf 自动从 .dist 补齐、已存在不覆盖） |
+| `scripts/60-start-server.sh` | 双进程启动（缺 .conf 自动从 .dist 补齐；模块 conf 首次生成时打开 Enable） |
 | `scripts/70-export-character-data.sh` | 【源端】角色数据导出：characters 整库 + realmd 三表 + manifest（SRP6 原密码随行） |
 | `scripts/80-import-character-data.sh` | 【目标端】导入：版本守门 + 确认词 + 整库替换（支持 --dry-run 预演） |
 
 ## 快速开始
 
 ```bash
-# 0) 取仓库（四个仓库同级摆放——脚本按此约定；克隆后留在默认主分支）
+# 0) 取仓库（代码仓与指导包同级摆放——脚本按此约定；克隆后留在默认主分支）
 #    三个代码仓库均为本体系 fork（haisheng2017），与上游 cmangos 定期同步
+#    四个模块 + 框架另见 docs/09-modules.md（与 mangos-classic 同级克隆）
 mkdir -p $HOME/wow && cd $HOME/wow
 git clone https://github.com/haisheng2017/mangos-classic.git mangos-classic
 git clone https://github.com/haisheng2017/classic-db.git     classic-db
 git clone https://github.com/haisheng2017/playerbots.git     playerbots
 git clone <本指导包仓库.git>		                          single-player-project-for-WoW
+# 模块（本流程默认编入；完整 clone 命令见 docs/09）：
+# git clone https://github.com/flekz-games/cmangos-modules.git cmangos-modules
+# … transmog / dualspec / achievements / barber
 
-# 1) 系统依赖（Ubuntu 22.04, amd64）+ 2) 模块挂载（软链 + 在位校验，fork 主分支已自带补丁）
+# 1) 系统依赖（Ubuntu 22.04, amd64）+ 2) 模块挂载（PlayerBots + 四个功能模块软链）
 sudo bash single-player-project-for-WoW/scripts/10-install-deps.sh
 bash     single-player-project-for-WoW/scripts/20-prepare-playerbots.sh
 
-# 3) 编译（产物 → ./run）
+# 3) 编译（产物 → ./run；含 BUILD_MODULES 与四个 BUILD_MODULE_*）
 bash     single-player-project-for-WoW/scripts/30-build-server.sh
 
 # 4) 数据库预备 + 按脚本尾部的指引人工走完交互菜单（文档 05 全程对照）
 sudo bash single-player-project-for-WoW/scripts/40-prepare-database.sh
 cd classic-db && bash InstallFullDB.sh    # 菜单路线与确认词陷阱：务必先读 05 第 2.3 节
 
+# 4b) 四个模块的世界 SQL（不导角色库；水晶 DisplayId 见 troubleshooting）
+bash     ../single-player-project-for-WoW/scripts/45-install-module-sql.sh
+cd ..
+
 # 5) 提取客户端数据（需要一份 1.12.x 客户端的 Data/ 目录；1.12.1/1.12.2/1.12.3 任一）
 bash     single-player-project-for-WoW/scripts/50-extract-client-data.sh /path/to/WoW112client
 
-# 6) 启动（缺 .conf 时 60 号自动从 .dist 补齐；必检项见 06 §2）
+# 6) 启动（缺 .conf 时 60 号自动从 .dist 补齐；模块 Enable 首次打开；必检项见 06 §2）
 bash     single-player-project-for-WoW/scripts/60-start-server.sh
 
 # 7) 建号 → 客户端 realmlist → 进游戏

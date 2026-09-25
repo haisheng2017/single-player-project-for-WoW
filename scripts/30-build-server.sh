@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# 30-build-server.sh —— 编译服务端（mangosd + realmd + playerbots + ahbot + 提取工具）
+# 30-build-server.sh —— 编译服务端（mangosd + realmd + playerbots + ahbot + 模块 + 提取工具）
 #
-# 三个关键点（详见 docs/03-build.md）：
+# 关键点（详见 docs/03-build.md / docs/09-modules.md）：
 #   a) 编译器必须 gcc-12 或 clang（22.04 默认 gcc-11 有编译器 bug）；
-#   b) -DFETCHCONTENT_SOURCE_DIR_PLAYERBOTS 必须带上（复用三仓库布局里的本地
-#      playerbots 克隆，避免 CMake FetchContent 先 rm -rf 再从 GitHub 重克隆）；
+#   b) -DFETCHCONTENT_SOURCE_DIR_PLAYERBOTS 必须带上（复用本地 playerbots
+#      克隆，避免 CMake FetchContent 先 rm -rf 再从 GitHub 重克隆）；
 #   c) x86_64（amd64）机器上 BUILD_EXTRACTORS=ON 可用；arm64 上会被 CMake
 #      自动强制 OFF（core 顶层 CMakeLists.txt 的 ARM 检查），届时请到任意
 #      x86 Linux 机器上单独提取（见 docs/04-extract.md）。
@@ -13,8 +13,12 @@
 #      关闭）。其运行配置 run/etc/ahbot.conf 没有上游 install 规则——本脚本
 #      在 make install 后自动从模块模板 playerbots/ahbot/ahbot.conf.dist.in
 #      拷贝生成（模板无 @ 替换符，直拷即用；已存在时不覆盖）。
+#   e) 四个外观/天赋模块默认编入（-DBUILD_MODULES=ON 与各 BUILD_MODULE_*）。
+#      源码须已由 20 号脚本挂到 src/modules/{modules,transmog,dualspec,
+#      achievements,barber}；本地缺失时 CMake 才会 FetchContent 拉取。
+#      make install 会装入对应 .conf.dist；运行时 Enable 由 60 号首次补齐。
 #
-# 用法：在三仓库父目录  bash scripts/30-build-server.sh
+# 用法：在父目录  bash scripts/30-build-server.sh
 #   可用 WOW_ROOT=... 指定父目录；BUILD_CC/BUILD_CXX 可覆盖默认编译器；
 #   BUILD_AHBOT=OFF 可不编 AHBot
 # 幂等：可重复执行（增量编译）
@@ -36,6 +40,12 @@ if ! ls "$CORE"/src/modules/PlayerBots/sql >/dev/null 2>&1; then
   echo "[ERROR] src/modules/PlayerBots symlink missing or unresolvable; run scripts/20-prepare-playerbots.sh first"
   exit 1
 fi
+for folder in modules transmog dualspec achievements barber; do
+  if [[ ! -f "$CORE/src/modules/$folder/CMakeLists.txt" ]]; then
+    echo "[ERROR] src/modules/$folder missing or unresolvable; run scripts/20-prepare-playerbots.sh first"
+    exit 1
+  fi
+done
 
 # 编译器选择：默认 gcc-12，可选 clang
 CC_BIN="${BUILD_CC:-gcc-12}"
@@ -59,7 +69,12 @@ CC="$CC_BIN" CXX="$CXX_BIN" cmake "$CORE" \
   -DBUILD_PLAYERBOTS=ON \
   -DBUILD_AHBOT="$AHBOT" \
   -DFETCHCONTENT_SOURCE_DIR_PLAYERBOTS="$BOTS" \
-  -DBUILD_EXTRACTORS=ON
+  -DBUILD_EXTRACTORS=ON \
+  -DBUILD_MODULES=ON \
+  -DBUILD_MODULE_TRANSMOG=ON \
+  -DBUILD_MODULE_DUALSPEC=ON \
+  -DBUILD_MODULE_ACHIEVEMENTS=ON \
+  -DBUILD_MODULE_BARBER=ON
 
 echo "==> Building (nproc jobs; first run ~10-30 min, PCH on)"
 make -j"$(nproc)"
@@ -78,7 +93,9 @@ echo ""
 echo "==> Artifact self-check:"
 for f in run/bin/mangosd run/bin/realmd \
          run/etc/mangosd.conf.dist run/etc/realmd.conf.dist \
-         run/etc/anticheat.conf.dist run/etc/aiplayerbot.conf.dist; do
+         run/etc/anticheat.conf.dist run/etc/aiplayerbot.conf.dist \
+         run/etc/transmog.conf.dist run/etc/dualspec.conf.dist \
+         run/etc/achievements.conf.dist run/etc/barber.conf.dist; do
   [[ -e "$WOW_ROOT/$f" ]] && echo "[OK]  $f" || echo "[MISSING] $f"
 done
 if [[ "$AHBOT" == "ON" ]]; then
@@ -86,3 +103,4 @@ if [[ "$AHBOT" == "ON" ]]; then
 fi
 echo ""
 echo "Done. Next step: docs/05-database.md + scripts/40-prepare-database.sh"
+echo "       After InstallFullDB: scripts/45-install-module-sql.sh (docs/09-modules.md)"

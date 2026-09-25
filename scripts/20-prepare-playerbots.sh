@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# 20-prepare-playerbots.sh —— 把 playerbots 模块"双保险"挂进 mangos-classic
+# 20-prepare-playerbots.sh —— 把 playerbots 与四个外观/天赋模块挂进 mangos-classic
 #
-# 背景（务必理解，详见 docs/02-source-layout.md）：
+# 背景（务必理解，详见 docs/02-source-layout.md / docs/09-modules.md）：
 #   1) core 的 CMake 与 classic-db 的 InstallFullDB.sh 都硬编码引用
 #      mangos-classic/src/modules/PlayerBots 这一路径 —— 靠软链接来满足；
 #   2) 该链接必须是【三层】 ../../.. 相对路径（位于 src/modules/ 内，向上三级
-#      才是三仓库父目录）。写成两层会指向 mangos-classic/playerbots（不存在），
+#      才是父目录）。写成两层会指向 mangos-classic/playerbots（不存在），
 #      症状是 InstallFullDB 的 playerbots 环节"静默空转"：显示 SUCCESS 但
 #      ai_playerbot_* 一张表都没进库；
 #   3) 开 BUILD_PLAYERBOTS 后，CMake FetchContent 的 git 下载路径是
@@ -16,8 +16,11 @@
 #      out-of-tree 二元目录改动【已提交进 fork 主分支】，本脚本只做
 #      "在位校验"：不在位时说明当前检出不是 fork 主分支形态，给出诊断而非
 #      自动打档。
+#   4) 开 BUILD_MODULES 后，四个功能模块 + cmangos-modules 框架同样要求
+#      src/modules/<folder>/CMakeLists.txt 已在位。本脚本只做用户侧软链接，
+#      不替你克隆、不从 ../cmangos-* 自动发现。缺目录则报错退出。
 #
-# 用法（在三仓库父目录）：bash scripts/20-prepare-playerbots.sh
+# 用法（在父目录）：bash scripts/20-prepare-playerbots.sh
 #   可用 WOW_ROOT 环境变量指定父目录，如：WOW_ROOT=$HOME/wow bash scripts/20-...
 # 幂等：可重复执行
 # ==============================================================================
@@ -59,6 +62,37 @@ else
   echo "[WARN] src/CMakeLists.txt matches neither the supported nor the pre-patch form - upstream may have restructured; manual inspection needed"
   exit 1
 fi
+
+# 四个外观/天赋模块 + 框架：与 PlayerBots 同样的三层相对软链接
+# 左侧 = src/modules 下的目录名，右侧 = 父目录下的仓库名
+echo "==> Creating 3-level symlinks for modules (framework + four features)"
+while read -r folder repo; do
+  [[ -z "$folder" ]] && continue
+  src="$WOW_ROOT/$repo"
+  if [[ ! -d "$src" ]]; then
+    echo "[ERROR] Module repository not found: $src"
+    echo "        Clone it next to mangos-classic (see docs/09-modules.md), then re-run this script."
+    exit 1
+  fi
+  if [[ ! -f "$src/CMakeLists.txt" ]]; then
+    echo "[ERROR] $src has no CMakeLists.txt - wrong checkout or incomplete clone"
+    exit 1
+  fi
+  ln -sfn "../../../$repo" "$CORE/src/modules/$folder"
+  if [[ -f "$CORE/src/modules/$folder/CMakeLists.txt" ]]; then
+    echo "[OK]  src/modules/$folder -> ../../../$repo"
+  else
+    echo "[ERROR] Symlink for $folder does not resolve to CMakeLists.txt"
+    ls -la "$CORE/src/modules/"
+    exit 1
+  fi
+done <<'EOF'
+modules cmangos-modules
+transmog cmangos-transmog
+dualspec cmangos-dualspec
+achievements cmangos-achievements
+barber cmangos-barber
+EOF
 
 echo ""
 echo "Done. Next step: scripts/30-build-server.sh"

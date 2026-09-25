@@ -30,17 +30,32 @@ done
 
 # 配置文件兜底：缺失的 .conf 自动从对应 .dist 拷贝；已存在的一律不动（默认装法下
 # .dist 默认值即可跑通，详见 docs/06 §2 的必检项说明）。
+# 四个模块配置：transmog/dualspec/achievements 模板默认 Enable=0，首次从 .dist
+# 生成时改为 1；barber 模板已是 1，只复制。已有 .conf 不覆盖。
 COPIED=""
-for f in mangosd realmd aiplayerbot anticheat; do
+for f in mangosd realmd aiplayerbot anticheat transmog dualspec achievements barber; do
   if [[ -e "$ETC/$f.conf" ]]; then
     :
   elif [[ -e "$ETC/$f.conf.dist" ]]; then
     cp "$ETC/$f.conf.dist" "$ETC/$f.conf"
+    case "$f" in
+      transmog)     sed -i 's/^Transmog\.Enable *= *0/Transmog.Enable = 1/' "$ETC/$f.conf" ;;
+      dualspec)     sed -i 's/^Dualspec\.Enable *= *0/Dualspec.Enable = 1/' "$ETC/$f.conf" ;;
+      achievements) sed -i 's/^Achievements\.Enable *= *0/Achievements.Enable = 1/' "$ETC/$f.conf" ;;
+    esac
     COPIED="${COPIED}${COPIED:+ }$f.conf"
     echo "[OK]  已从 .dist 模板补齐 $f.conf"
   else
-    echo "[错误] $ETC 下既无 $f.conf 也无 $f.conf.dist —— 先跑 scripts/30-build-server.sh（make install 会装入 .dist 模板）"
-    exit 1
+    # 模块配置仅在编了 BUILD_MODULES 时才有 .dist；缺核心配置才硬失败
+    case "$f" in
+      mangosd|realmd|aiplayerbot|anticheat)
+        echo "[错误] $ETC 下既无 $f.conf 也无 $f.conf.dist —— 先跑 scripts/30-build-server.sh（make install 会装入 .dist 模板）"
+        exit 1
+        ;;
+      *)
+        echo "[警告] 缺少 $f.conf.dist（未编入对应模块？），跳过"
+        ;;
+    esac
   fi
 done
 if [[ -n "$COPIED" ]]; then
