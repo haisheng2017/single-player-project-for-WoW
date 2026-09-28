@@ -41,7 +41,7 @@ bash InstallFullDB.sh
 | `WORLD_DB_NAME` 等 4 个库名 | `classicmangos` / `classiccharacters` / `classicrealmd` / `classiclogs` | 与 core 配置文件默认值一致，一般不动 |
 | `CORE_PATH` | 自动探测 | 脚本会在自身及上级 5 层内找名字含 `classic` 的核心目录——三仓库同级摆放即自动命中 `../mangos-classic` |
 | `PLAYERBOTS_DB` | `NO` | **改成 `"YES"`** 才会顺带导入 playerbots 的 SQL（脚本 `40` 号会自动追加/改写；手动即在文件**末尾**加一行 `PLAYERBOTS_DB="YES"`——后写的同名行覆盖先生成的默认） |
-| `AHBOT` | `NO` | 改成 `"YES"` 会顺带导入 core 的 `sql/base/ahbot/`（游戏内 `.ahbot` 命令的 `command` 表行，配合 30 号默认的 `BUILD_AHBOT=ON`）——同样由脚本 `40` 号兜底 |
+| `AHBOT` | `NO` | 改成 `"YES"` 会顺带导入 core 的 `sql/base/ahbot/`（游戏内 `.ahbot` 命令的 `command` 表行；与 30 号的 `BUILD_AHBOT` 编译开关相互独立）——同样由脚本 `40` 号兜底 |
 
 ### 菜单流转（实机逐步记录）
 
@@ -118,6 +118,18 @@ mysql -uroot -p -N -e "SELECT COUNT(*) FROM classicmangos.command WHERE name LIK
 - core 构建时把所需的数据库 revision 打进二进制；启动时校验各库 `db_version` 表；
 - `InstallFullDB.sh` 装好的库与其安装日的 core 修订号对齐；**先装库后取源码更新**的场景，菜单 `3) Install core updates only`（或重跑脚本）会把 core `sql/updates/` 增量补齐；
 - 正常情况下无需关心；看到 `db_version` 不匹配的报错时，按提示跑 core updates 即可。
+
+### classic-db 自身的内容增量（已装库如何跟进）
+
+classic-db 的 `Updates/`（含 `Updates/Instances/`）只随**全新安装**自动灌入（全量 Full_DB 之后串行跑完所有 Updates，并把 `db_version` 标记打到最新一列，如 `content_4838`）。已装库跟进 classic-db 仓库更新时没有对应菜单项（菜单 3 只补 core 侧；40/45 号也不含此步），需手动：
+
+1. 查已装标记：`mysql -uroot -p -e "SELECT * FROM classicmangos.db_version\G"`（版本行里形如 `content_XXXX` 的列名即"已装到哪个增量"）；
+2. 依编号**升序**补跑 `Updates/` 与 `Updates/Instances/` 中编号高于已装标记的 SQL；
+3. 三个坑：
+   - **原地改写**：上游会直接改老文件内容（如 `4772_TDB-0614`、`4834_beast_lore_cls`）——"按编号补新文件"看不见这些改动，需按 classic-db 的更新说明对号手动重放；
+   - **Instances 重复行**：`Instances/*.sql` 多为普通 `INSERT`、无唯一键（如 `070_uldaman.sql`）——整文件重导会把旧行再来一遍，只挑新增行执行；
+   - **schema 级更新与 core 版本锁死**：如 `4833_cls_rework.sql` 会改名 `db_version` 的 `required_zXXXX` 列——必须**先**重编/升级 core（30 号）**再**导入，顺序颠倒会启动校验失配；
+4. 兜底是重装（菜单 4 全装 / 2 重灌世界库）——破坏性（角色/世界状态丢失），增量小则勿轻用。
 
 ## 4. 版权与替代品
 

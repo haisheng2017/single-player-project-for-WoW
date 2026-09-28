@@ -8,7 +8,7 @@
 |---|---|
 | 发行版 | Ubuntu 22.04 LTS（对齐 CMaNGOS 官方 CI 的 ubuntu-22.04 runner） |
 | CPU 架构 | **x86_64 / amd64**（既能编服务器也能编地图提取器） |
-| | ⚠️ arm64/aarch64：服务器可以编译运行，但**地图提取器会被强制禁用**（core 顶层 `CMakeLists.txt` 的 ARM 检查），需另找一台 x86_64 机器跑提取（产物是跨平台数据文件，拷回即可） |
+| | ⚠️ arm64/aarch64：服务器可以编译运行。core 的提取器禁用检查**只匹配以 `arm` 开头的机器名**（`CMakeLists.txt:411` 的 `MATCHES "^arm"`；紧邻 `:412` 的 set 带逗号、是无效写法，实际靠跳过子目录生效）——macOS `arm64` 命中；Ubuntu 的 **`aarch64` 不命中**，是否禁用要到 configure/make 见分晓。稳妥做法仍是另找一台 x86_64 机器跑提取（产物是跨平台数据文件，拷回即可） |
 | 磁盘 | 约 5 GB（源码 + 编译 + 数据库）；客户端 Data/ 提取另需约 3 GB 余量 |
 | Docker 形态（可选） | 以容器代替物理机/虚拟机时：**`docker run` 必须带 `--init`**（否则 mysql-server 装不上，见 troubleshooting #26）；`docker build` 的 RUN 层执行 10 号脚本直接可行。服务管理用 `service mysql start/stop`，对外记得 `-p 3724:3724 -p 8085:8085` |
 | 网络 | 拉取四个仓库的 git（一次性）；configure/编译本身已可完全离线——zlib 走 apt 装好的系统包（见下表）、playerbots 走本地目录覆盖，均不联网 |
@@ -38,7 +38,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
 | `cmake` | 构建系统（源码要求 ≥ 3.16；22.04 仓库约 3.22，满足；官方 CI 亦直接用 3.2x） |
 | `libboost-all-dev` | Boost 1.74（源码要求 ≥ 1.70，满足；CI 固定 1.87 只是跨平台一致性，非硬性）。注入 5 个组件：program_options / thread / regex / serialization / filesystem |
 | `libssl-dev` | OpenSSL ≥ 3.0（22.04 仓库默认 3.0.x，满足） |
-| `libmysqlclient-dev` | MySQL **开发库**（`mysql.h` + `libmysqlclient.so`）。注意：core 的 CMake 对 MySQL 是**配置阶段强制检查**——条件包含 `BUILD_EXTRACTORS`，也就是说**即使只构建提取器也必须装**（对应 core `CMakeLists.txt:252-258`） |
+| `libmysqlclient-dev` | MySQL **开发库**（`mysql.h` + `libmysqlclient.so`）。注意：core 的 CMake 对 MySQL 是**配置阶段强制检查**——条件包含 `BUILD_EXTRACTORS`，也就是说**即使只构建提取器也必须装**（对应 core `CMakeLists.txt:256-263`） |
 | `mysql-client` | `mysql` / `mysqldump` 命令行客户端（`InstallFullDB.sh` 的运行依赖之一） |
 | `mysql-server` | 数据库服务本体（四库都要落在它里面；Ubuntu 特有的 auth_socket 问题见 `05-database.md`） |
 | `zlib1g-dev` / `libbz2-dev` | 压缩库。zlib：**fork 主分支的查找顺序为 CONFIG（apt 包无 `zlibConfig.cmake`，恒未果）→ 系统 zlib（模块模式，本包装了即命中——configure 全程离线，mangosd 直接链系统 libz）→ FetchContent 联网拉 v1.3.2（仅系统未装时的兜底，上游原版恒走此路）**。configure 期 `Could NOT find ZLIB (missing: ZLIB_DIR)` 一行属正常，紧接应见 `Found ZLIB: ... (found version "1.2.11")`（解读见 03）。bz2：装了即用系统包（缺装且开提取器时退回编源码树 `dep/src/bzip2`） |
@@ -48,7 +48,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
 
 ## 明确"不需要"的东西（对照老教程清障）
 
-- **不需要 ICU**——core 只在 `if(APPLE)` 分支里 `find_package(ICU)`（`CMakeLists.txt:210`）。Linux 上没有这个依赖，也就没有 macOS 上著名的 ICU 坑；
+- **不需要 ICU**——core 只在 `if(APPLE)` 分支里 `find_package(ICU)`（`CMakeLists.txt:214-215`）。Linux 上没有这个依赖，也就没有 macOS 上著名的 ICU 坑；
 - **不需要 ACE**——老 MaNGOS 时代的 ACE 依赖已被移除，线程/网络改走系统与 Boost 实现；
 - **不需要** MySQL++（老 wiki 清单里的 `libmysql++-dev` 属历史遗留，多装无害但无必要）；
 - **不需要** 换装新版编译器/Boost——仓库版本即测试版本。

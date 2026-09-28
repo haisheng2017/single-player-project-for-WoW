@@ -22,7 +22,7 @@
 | `docs/troubleshooting.md` | 坑位速查表（每条都实机踩过/验证过；含双天赋水晶不可见） |
 | `scripts/10-install-deps.sh` | 一键 apt 依赖（sudo） |
 | `scripts/20-prepare-playerbots.sh` | PlayerBots + 五个模块软链 + out-of-tree 在位校验（幂等，不打档——fork 自带） |
-| `scripts/30-build-server.sh` | 配置+编译+安装（默认 gcc-12；AHBot 与四个模块默认编入；`BUILD_AHBOT=OFF` 可关 AHBot） |
+| `scripts/30-build-server.sh` | 配置+编译+安装（默认 gcc-12；模块版 AHBot 随 playerbots 默认编入 + 四模块；`BUILD_AHBOT=ON` 才会切到 core 内置老版（不推荐）） |
 | `scripts/40-prepare-database.sh` | MySQL 就绪/auth_socket 处理/装库开关兜底（PLAYERBOTS_DB、AHBOT）+ 装后直连 MySQL 自动验收（sudo；全装路线与确认词打印） |
 | `scripts/45-install-module-sql.sh` | 导入四个模块的世界库 SQL（不导角色库、不改水晶 DisplayId/坐标） |
 | `scripts/50-extract-client-data.sh` | 提取包装：工具就位→跑官方 ExtractResources→产物回拷（含 mmaps 缺失降级） |

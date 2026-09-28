@@ -53,7 +53,7 @@ cp -R ~/client112/{dbc,maps,vmaps,mmaps} run/bin/
 
 ## arm64 Ubuntu 的特别说明
 
-提取器的编译被 core 顶层 `CMakeLists.txt`（约 401 行）强制 `BUILD_EXTRACTORS=OFF`——arm64 上无法本地编译。请在**任意一台 x86_64 Linux**（物理机/虚拟机/容器均可）上按本篇流程提取，**提取产物是跨平台的纯数据文件**，拷回 arm64 服务器的 `run/bin/` 直接可用（服务器本体仍在 arm64 上编译运行）。
+提取器的编译被 core 顶层 `CMakeLists.txt`（:407-420 一带）的 ARM 检查跳过——但该检查**只匹配以 `arm` 开头的机器名**（`MATCHES "^arm"`；紧邻的 `set(BUILD_EXTRACTORS, OFF)` 逗号写法无效，实际靠跳过子目录生效）：macOS `arm64` 命中，Ubuntu 的 **`aarch64` 不命中**、要到 configure/make 见分晓，arm64 Linux 请实际核对。稳妥路径不变：请在**任意一台 x86_64 Linux**（物理机/虚拟机/容器均可）上按本篇流程提取，**提取产物是跨平台的纯数据文件**，拷回 arm64 服务器的 `run/bin/` 直接可用（服务器本体仍在 arm64 上编译运行）。
 
 提取完 `Data/` 即可归还——后续步骤与客户端文件再无关系（直到真正登录游玩时需要客户端本体，见 07）。
 

@@ -16,7 +16,8 @@
 #   PLAYERBOTS_DB="YES" —— playerbots 三组 SQL（world / world/classic / characters）
 #                          随全装自动入库；
 #   AHBOT="YES"        —— 顺带导入 core 的 sql/base/ahbot/（游戏内 .ahbot 命令的
-#                          command 表行，与 30 号默认 BUILD_AHBOT=ON 呼应）。
+#                          command 表行；与 30 号的 BUILD_AHBOT 编译开关相互独立——
+#                          后者是"选模块版/内置老版"的开关，30 号默认 OFF=模块版）。
 #   四库已在时，本脚本会把 classic-db/locales/Chinese/*.sql 补进世界库
 #   （InstallFullDB 的 locales/*.sql 匹配不到这个子目录）。对应表已有行则跳过。
 #

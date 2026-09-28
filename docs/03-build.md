@@ -12,7 +12,7 @@ CC=gcc-12 CXX=g++-12 cmake ../mangos-classic \
   -DCMAKE_INSTALL_PREFIX="$WOW_ROOT/run" \
   -DPCH=1 -DDEBUG=0 \
   -DBUILD_PLAYERBOTS=ON \
-  -DBUILD_AHBOT=ON \
+  -DBUILD_AHBOT=OFF \
   -DFETCHCONTENT_SOURCE_DIR_PLAYERBOTS="$WOW_ROOT/playerbots" \
   -DBUILD_EXTRACTORS=ON \
   -DBUILD_MODULES=ON \
@@ -35,9 +35,9 @@ make install
 | `-DPCH=1` | 预编译头，显著加速全量/增量编译（CI 同款） |
 | `-DDEBUG=0` | Release 行为（默认也是 release，显式写出更直观） |
 | `-DBUILD_PLAYERBOTS=ON` | 把 playerbots 模块编进 mangosd |
-| `-DBUILD_AHBOT=ON` | 拍卖行机器人默认编入：宏经 `src/game/CMakeLists.txt:145-148` 注入 core，激活 World 启动/更新钩子与 `.ahbot` 管理命令（`World.cpp`/`Chat.cpp` 的 `#ifdef BUILD_AHBOT`）；AhBot 源码本就随模块编译，此开关只控制 core 侧钩子。跑脚本时可用环境变量 `BUILD_AHBOT=OFF` 关闭 |
+| `-DBUILD_AHBOT=OFF` | 拍卖行机器人默认即 **playerbots 模块版 AhBot**，随 `BUILD_PLAYERBOTS=ON` 自动编入，无需开关（本体系文档/配置全按模块版撰写）。注意方向：core 的 `BUILD_AHBOT=ON` 走的是**另一套实现**——启用 core 内置 2021 老拍卖 bot，并**同时把模块版编出编译**（`World.cpp`/`Chat.cpp` 的 `#ifdef/#ifndef BUILD_AHBOT` 门控，宏定义在 `src/game/CMakeLists.txt:164-167`）。两版读**同一个** `run/etc/ahbot.conf`，而模块模板已把内置版键 `AuctionHouseBot.Seller/Buyer.Enabled` 置 0——选 ON 的净效果是**两个都不跑**，不推荐。脚本 30 号默认传 OFF；环境变量 `BUILD_AHBOT=ON` 可强行切内置老版 |
 | `-DFETCHCONTENT_SOURCE_DIR_PLAYERBOTS=.../playerbots` | **双保险之二**：绝对路径指向本地克隆，FetchContent 不再联网、不再 `rm -rf` 本地目录（原理见 02） |
-| `-DBUILD_EXTRACTORS=ON` | 顺带把地图提取器编出来（x86_64 可用；arm64 会被 core 顶层 CMake 自动置 OFF——报一行 `BUILD_EXTRACTORS forced to OFF. Not supported on ARM architecture`，属预期） |
+| `-DBUILD_EXTRACTORS=ON` | 顺带把地图提取器编出来（x86_64 可用；机器名以 `arm` 开头时（如 macOS `arm64`）会被 core 顶层 CMake 跳过并报一行 `BUILD_EXTRACTORS forced to OFF. Not supported on ARM architecture`，属预期。注意该检查只匹配 `^arm`（`CMakeLists.txt:411`）——Ubuntu `aarch64` **不命中**，是否禁用要到 configure/make 见分晓，arm64 Linux 请实际核对） |
 | `-DBUILD_MODULES=ON` 与四个 `-DBUILD_MODULE_*=ON` | 编入 transmog / dualspec / achievements / barber（及框架 `modules`）。源码须已由 20 号挂到 `src/modules/<folder>`；细节见 `09-modules.md` |
 
 ### 顺带的高频构建参数（按需）
@@ -58,7 +58,7 @@ run/
 ├── bin/
 │   ├── mangosd              # 世界服（前台运行、自带控制台）
 │   ├── realmd               # 登录服
-│   ├── tools/               # 提取工具（ad / vmapextractor / vmap_assembler / MoveMapGen + 脚本）
+│   ├── tools/               # 提取工具（ad / vmap_extractor / vmap_assembler / MoveMapGen + 脚本）
 │   └── warden_modules/      # 反作弊数据
 └── etc/
     ├── mangosd.conf.dist
@@ -69,8 +69,10 @@ run/
     ├── dualspec.conf.dist
     ├── achievements.conf.dist
     ├── barber.conf.dist
-    └── ahbot.conf              # 无上游 install 规则——30 号脚本在安装后从
-                                #   playerbots/ahbot/ahbot.conf.dist.in 直接拷贝生成（模板无 @ 替换符）
+    └── ahbot.conf              # 模块版无上游 install 规则——30 号脚本在安装后从
+                                #   playerbots/ahbot/ahbot.conf.dist.in 直接拷贝生成（模板无 @ 替换符；
+                                #   仅当以 BUILD_AHBOT=ON 切内置老版时才改由 core 自带模板装入
+                                #   ahbot.conf.dist，本流程默认不出现后者）
 ```
 
 > 曾经流行的一些教程说"aiplayerbot.conf 不随 make install 安装、需从构建目录手拷"——那是旧版模块的行为，现在的模块自带 install 规则，`run/etc/` 里就有 **`aiplayerbot.conf.dist`**，去后缀即用（见 06）。四个外观模块同理：`.dist` 随 install 装入，首次 Enable 由 60 号处理（见 `09`）。
