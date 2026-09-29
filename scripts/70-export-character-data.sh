@@ -7,8 +7,8 @@
 #                                        邮件/bot 的 11 张 ai_playerbot_* 动态表等）
 #   wow-realmd-tables-<时间戳>.sql.gz     账号三表：account（含 SRP6 v/s，原密码可登录）、
 #                                        account_banned、realmcharacters（不迁 realmlist!）
-#   wow-migration-<时间戳>.manifest.txt    时间、revision 列名、行数计数 —— 80 号脚本的
-#                                        版本守门依据
+#   wow-migration-<时间戳>.manifest.txt    时间、revision 列名、行数计数、模块角色侧表
+#                                        —— 80 号脚本的版本守门依据
 #
 # 迁移适用面：源服与目标服同为 mangos-classic 系（详见 docs/08）。
 # 导出期间 mysqldump --lock-all-tables 全局读锁 → 建议停服或低峰执行。
@@ -70,6 +70,15 @@ realm_rev=$("${MYSQL_CMD[@]}" -e "SHOW COLUMNS FROM \`$REALM_DB\`.realmd_db_vers
 char_cnt=$("${MYSQL_CMD[@]}" -e "SELECT COUNT(*) FROM \`$CHAR_DB\`.characters;" 2>/dev/null || echo 0)
 acct_cnt=$("${MYSQL_CMD[@]}" -e "SELECT COUNT(*) FROM \`$REALM_DB\`.account;" 2>/dev/null || echo 0)
 
+# 功能模块的角色侧表探测（manifest 素材：目标端一眼看清源端带了哪些模块数据；
+# 与 docs/08 §2.1 对应——没编对应模块的目标不受影响，这些是信息行不是开关）
+mod_tables=""
+for t in custom_immersive_values custom_transmog_active custom_transmog_discovered; do
+  if "${MYSQL_CMD[@]}" -e "SELECT 1 FROM \`$CHAR_DB\`.\`$t\` LIMIT 1;" >/dev/null 2>&1; then
+    mod_tables+="$t "
+  fi
+done
+
 DUMP_ARGS=(--lock-all-tables --default-character-set=utf8 --hex-blob -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USER")
 
 echo "==> 导出角色库 ${CHAR_DB}（表级 dump，全局读锁中…）"
@@ -91,6 +100,7 @@ fi
   echo "realmd_db        = $([[ $NO_REALMD -eq 0 ]] && echo "$REALM_DB (tables: account account_banned realmcharacters)" || echo "未导出(--no-realmd)")"
   echo "char_revision    = ${char_rev:-未知}（character_db_version 当前列名）"
   echo "realm_revision   = ${realm_rev}"
+  echo "module_tables    = ${mod_tables:-无}（角色侧功能模块表，见 docs/08 §2.1）"
   echo "characters_rows  = $char_cnt"
   echo "accounts_rows    = $acct_cnt"
   echo "files            = $CHAR_FILE $([[ $NO_REALMD -eq 0 ]] && echo "$REALM_FILE")"

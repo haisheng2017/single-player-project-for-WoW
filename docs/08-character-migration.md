@@ -25,6 +25,17 @@
 git -C playerbots diff --name-only | grep "^sql/world/"   # 有输出 = 迁移时要在目标服重放这些文件
 ```
 
+### 2.1 功能模块的角色侧数据（五模块时代：方法不变）
+
+接入 transmog / dualspec / achievements / barber / immersive 后，**迁移方法与脚本语义无需任何变化**，四层原因：
+
+- 70 号导出 characters **整库**——模块的角色侧表自动随 dump 走（immersive 的 `custom_immersive_values`、transmog 的 `custom_transmog_active/_discovered`；dualspec/achievements 的进度表仅当源端手工导过角色库 SQL 才存在——本流程默认不导，见 troubleshooting #36）；
+- 80 号 DROP+CREATE 整库重建——dump 带什么进什么；模块表零外键/视图/触发器，无顺序依赖；
+- 版本守门比对的是 `character_db_version` 的 revision 链——模块表**不在** core update 链里，守门不受任何影响；
+- immersive 的账号声望共享是运行时按账号查 `characters` 表（`WHERE account=`），迁移保持账号-角色关联，共享语义无损。
+
+语义两条：**目标服编有对应模块**才"读得懂"随行数据——没编则是惰性死数据（无害，日后补编即可用）。immersive 的表与 45 号首装守卫**两种时序都正确**：45 先跑 → 迁移整库替换把源端数据冲进来；迁移先 → 45 见表在位 `[SKIP]`、保留迁移数据（源端没这表则 45 建空表）——不必人为安排顺序。
+
 ## 3. 迁移流程四步
 
 ```
@@ -33,6 +44,8 @@ git -C playerbots diff --name-only | grep "^sql/world/"   # 有输出 = 迁移�
 ② 传输：把三个文件拷到目标机（scp / U 盘均可）
         scp wow-characters-* wow-realmd-tables-* *.manifest.txt user@<目标机>:
 ③ 目标端前置：InstallFullDB 已完成（步骤 4）且 mangosd/realmd 已停
+        （45 号模块 SQL 亦应已执行——NPC/世界侧数据，与本迁移无数据依赖，
+          补跑以保证迁移后模块体验完整；时序见 §2.1 末段）
 ④ 目标端：bash scripts/80-import-character-data.sh <dump文件...>
         → 版本守门 → 逐字确认词 → 替换导入 → 自动验证计数
    事后：InstallFullDB 选 3) Install core updates only（仅当版本守门提示需要时）
@@ -61,6 +74,9 @@ mysql -uroot -p -N -e "SELECT COUNT(*) FROM classicrealmd.account;"             
 mysql -uroot -p -N -e "SELECT COUNT(*) FROM classiccharacters.characters;"          # ≈ 源服角色数
 mysql -uroot -p -N -e "SELECT COUNT(*) FROM information_schema.tables \
   WHERE table_schema='classiccharacters' AND table_name LIKE 'ai_player%';"          # 11
+# 用 immersive / transmog 的可再各查一行（迁移随行或 45 首装；两号都在则非 0）：
+#   SELECT COUNT(*) FROM classiccharacters.custom_immersive_values;
+#   SELECT COUNT(*) FROM classiccharacters.custom_transmog_active;
 # —— 人工 ——
 # 启动后用任意一个源服账号的原密码登录一次
 # 上号后抽查：背包物品、任务日志、bot（/w <bot> follow）
@@ -145,6 +161,13 @@ GROUP BY table_name HAVING COUNT(*) <> 2*COUNT(DISTINCT column_name);
 | **全量原样迁（默认）** | 无额外操作 | 关系零丢失；bot 账号/角色沦为死数据，不干扰运行；日后想清爽再清扫 |
 | 迁前过滤 | 临时库执行：`DELETE FROM account WHERE username LIKE 'RNDBOT%';` + `DELETE FROM realmcharacters WHERE acctId NOT IN (SELECT id FROM account);` | 只余真人账号；被删账号下的 bot 角色成孤儿，目标 mangosd 启动时**自动清理（不可逆）**；玩家角色不受影响 |
 
-### 9.5 repack 定制模块表（随行死数据，无害）
+### 9.5 repack 定制模块表（先认表名再放行）
 
-`custom_*`（双天赋/幻化/硬核/单机平衡类模块）、`character_achievement*`、`character_armory_feed` 等表不在当前栈功能内——整库替换后随行而来，mangosd 不读、无害；想清理按表名前缀自行 DROP（本文不代跑）。
+注意：当前栈的功能模块**自己就用 `custom_` 前缀表**——immersive 在角色库建 `custom_immersive_values`、transmog 建 `custom_transmog_active/_discovered`（45 号/目标装流程创建）。repack 源 dump 里的 `custom_*` 因此分两类处理：
+
+| 类别 | 判别 | 处置 |
+|---|---|---|
+| 与当前栈同名的表（`custom_immersive_values`、`custom_transmog_active/_discovered`） | repack 恰捆过同源前身（ike3 的 mangosbot-immersive / 旧 transmog）时撞名 | schema 不确定就**迁前在临时库 DROP**——迁后 45 号见表缺失自动重建空表；确认与当前栈同源同列（临时库 `SHOW CREATE TABLE` 对照）则可沿用数据 |
+| 其余 `custom_*`（硬核/单机平衡类）、`character_achievement*`、`character_armory_feed` | 不在当前栈功能内 | 随行死数据，mangosd 不读、无害；想清理按前缀自行 DROP |
+
+9.3 的列集自检只覆盖**共有表**——模块表请按上面名单逐一核对，别拿共有表结论覆盖它们。
