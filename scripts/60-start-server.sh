@@ -30,10 +30,12 @@ done
 
 # 配置文件兜底：缺失的 .conf 自动从对应 .dist 拷贝；已存在的一律不动（默认装法下
 # .dist 默认值即可跑通，详见 docs/06 §2 的必检项说明）。
-# 四个模块配置：transmog/dualspec/achievements 模板默认 Enable=0，首次从 .dist
-# 生成时改为 1；barber 模板已是 1，只复制。已有 .conf 不覆盖。
+# 五个模块配置：transmog/dualspec/achievements/immersive 模板默认 Enable=0，首
+# 次从 .dist 生成时改为 1；barber 模板已是 1，只复制。immersive 首开时同时打
+# 开 AccountReputation / SharedQuests（声望/任务跨号共享，语义与限制见 docs/09）。
+# 已有 .conf 不覆盖。
 COPIED=""
-for f in mangosd realmd aiplayerbot anticheat transmog dualspec achievements barber; do
+for f in mangosd realmd aiplayerbot anticheat transmog dualspec achievements barber immersive; do
   if [[ -e "$ETC/$f.conf" ]]; then
     :
   elif [[ -e "$ETC/$f.conf.dist" ]]; then
@@ -42,6 +44,9 @@ for f in mangosd realmd aiplayerbot anticheat transmog dualspec achievements bar
       transmog)     sed -i 's/^Transmog\.Enable *= *0/Transmog.Enable = 1/' "$ETC/$f.conf" ;;
       dualspec)     sed -i 's/^Dualspec\.Enable *= *0/Dualspec.Enable = 1/' "$ETC/$f.conf" ;;
       achievements) sed -i 's/^Achievements\.Enable *= *0/Achievements.Enable = 1/' "$ETC/$f.conf" ;;
+      immersive)   sed -i -e 's/^Immersive\.Enable *= *0/Immersive.Enable = 1/' \
+                    -e 's/^Immersive\.AccountReputation *= *0/Immersive.AccountReputation = 1/' \
+                    -e 's/^Immersive\.SharedQuests *= *0/Immersive.SharedQuests = 1/' "$ETC/$f.conf" ;;
     esac
     COPIED="${COPIED}${COPIED:+ }$f.conf"
     echo "[OK]  已从 .dist 模板补齐 $f.conf"

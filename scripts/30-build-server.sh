@@ -18,10 +18,11 @@
 #      模块版的运行配置 run/etc/ahbot.conf 没有上游 install 规则——本脚本
 #      在 make install 后自动从模块模板 playerbots/ahbot/ahbot.conf.dist.in
 #      拷贝生成（模板无 @ 替换符，直拷即用；已存在时不覆盖）。
-#   e) 四个外观/天赋模块默认编入（-DBUILD_MODULES=ON 与各 BUILD_MODULE_*）。
-#      源码须已由 20 号脚本挂到 src/modules/{modules,transmog,dualspec,
-#      achievements,barber}；本地缺失时 CMake 才会 FetchContent 拉取。
-#      make install 会装入对应 .conf.dist；运行时 Enable 由 60 号首次补齐。
+#   e) 五个功能模块默认编入（-DBUILD_MODULES=ON 与各 BUILD_MODULE_*；四个
+#      外观/天赋 + immersive 进度共享）。源码须已由 20 号脚本挂到 src/modules/
+#      {modules,transmog,dualspec,achievements,barber,immersive}；本地缺失时
+#      CMake 才会 FetchContent 拉取。make install 会装入对应 .conf.dist；
+#      运行时 Enable 由 60 号首次补齐（immersive 另首开两个共享开关）。
 #
 # 用法：在父目录  bash scripts/30-build-server.sh
 #   可用 WOW_ROOT=... 指定父目录；BUILD_CC/BUILD_CXX 可覆盖默认编译器；
@@ -80,7 +81,8 @@ CC="$CC_BIN" CXX="$CXX_BIN" cmake "$CORE" \
   -DBUILD_MODULE_TRANSMOG=ON \
   -DBUILD_MODULE_DUALSPEC=ON \
   -DBUILD_MODULE_ACHIEVEMENTS=ON \
-  -DBUILD_MODULE_BARBER=ON
+  -DBUILD_MODULE_BARBER=ON \
+  -DBUILD_MODULE_IMMERSIVE=ON
 
 echo "==> Building (nproc jobs; first run ~10-30 min, PCH on)"
 make -j"$(nproc)"
@@ -102,7 +104,8 @@ for f in run/bin/mangosd run/bin/realmd \
          run/etc/mangosd.conf.dist run/etc/realmd.conf.dist \
          run/etc/anticheat.conf.dist run/etc/aiplayerbot.conf.dist \
          run/etc/transmog.conf.dist run/etc/dualspec.conf.dist \
-         run/etc/achievements.conf.dist run/etc/barber.conf.dist; do
+         run/etc/achievements.conf.dist run/etc/barber.conf.dist \
+         run/etc/immersive.conf.dist; do
   [[ -e "$WOW_ROOT/$f" ]] && echo "[OK]  $f" || echo "[MISSING] $f"
 done
 if [[ "$AHBOT" != "ON" ]]; then

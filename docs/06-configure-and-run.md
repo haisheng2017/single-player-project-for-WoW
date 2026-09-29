@@ -13,14 +13,15 @@ cp aiplayerbot.conf.dist aiplayerbot.conf    # playerbots 模块已随 make inst
 # ahbot.conf 不在上表：模块版没有 install 规则，30 号脚本在 make install 后已直接
 # 创建为可用文件（模块版 AHBot 随 playerbots 默认编入并读它；若强行以 BUILD_AHBOT=ON
 # 切到 core 内置老版，则改由 core 自带模板装入 ahbot.conf.dist，此拷贝不发生）
-# 四个外观/天赋模块（BUILD_MODULES 时 make install 装入 .dist）：
+# 五个功能模块（BUILD_MODULES 时 make install 装入 .dist）：
 # cp transmog.conf.dist transmog.conf         # 模板默认 Enable=0
 # cp dualspec.conf.dist dualspec.conf
 # cp achievements.conf.dist achievements.conf
 # cp barber.conf.dist barber.conf             # 模板默认 Enable=1
+# cp immersive.conf.dist immersive.conf       # 60 号另首开 AccountReputation/SharedQuests
 ```
 
-> 上述拷贝无需死记：`60-start-server.sh` 启动前会对核心四个文件 + 四个模块文件做同款兜底——缺哪个 `.conf` 就从对应 `.dist` 自动补齐，**已存在的一律不覆盖**。对 transmog / dualspec / achievements，**首次**从 `.dist` 生成时还会把 `Enable` 改成 `1`（barber 模板已是 1）。手动 cp 与之完全等价；模块细节见 `09-modules.md`。
+> 上述拷贝无需死记：`60-start-server.sh` 启动前会对核心四个文件 + 五个模块文件做同款兜底——缺哪个 `.conf` 就从对应 `.dist` 自动补齐，**已存在的一律不覆盖**。对 transmog / dualspec / achievements，**首次**从 `.dist` 生成时还会把 `Enable` 改成 `1`（barber 模板已是 1）；immersive 除 `Enable` 外同开 `AccountReputation`/`SharedQuests` 两个共享键（语义与限制见 `09-modules.md` §8）。手动 cp 与之完全等价；模块细节见 `09-modules.md`。
 
 ## 2. 必要检查项
 
@@ -47,10 +48,10 @@ cp aiplayerbot.conf.dist aiplayerbot.conf    # playerbots 模块已随 make inst
 
 - `AhBot.Enabled = 1`（模板默认已开）；拍卖行刷新节奏等见文件内注释（`AhBot.UpdateIntervalInSeconds` 默认 900 秒）。mangosd 启动日志若见 `AhBot is Disabled. Unable to open configuration file ahbot.conf`——检查 `run/etc/ahbot.conf` 是否在位（一般由 30 号脚本生成——模块版固定按工作目录相对的 `../etc/ahbot.conf` 读取；`-a` 启动参数只影响 core 内置老版，对模块版无效）；游戏内 `.ahbot` 命令可现场管理（需 SEC_GAMEMASTER 权限；其 `command` 表行来自 core `sql/base/ahbot/`，由装库时 `InstallFullDB.config` 的 `AHBOT="YES"` 导入——40 号已兜底并自动验收，早于此机制装的库可单独补导：`mysql classicmangos < mangos-classic/sql/base/ahbot/mangos_command_ahbot.sql`，文件自带 DELETE 可重复执行）。
 
-四个模块 conf（`transmog` / `dualspec` / `achievements` / `barber`）：
+五个模块 conf（`transmog` / `dualspec` / `achievements` / `barber` / `immersive`）：
 
-- 首次由 60 号从 `.dist` 生成时，前三个的 `*.Enable` 会被改成 `1`；改配置后须重启 mangosd。
-- 世界 SQL 用 `45-install-module-sql.sh`（InstallFullDB 之后）；双天赋入口是生物 **100601**，不是人型 NPC。验证与排障见 `09-modules.md` / `troubleshooting.md` #32–#36。
+- 首次由 60 号从 `.dist` 生成时，前三个的 `*.Enable` 会被改成 `1`；immersive 打开 `Enable` + `AccountReputation`/`SharedQuests`（跨号声望/任务共享）；改配置后须重启 mangosd。
+- SQL 用 `45-install-module-sql.sh`（InstallFullDB 之后）；双天赋入口是生物 **100601**，不是人型 NPC。验证与排障见 `09-modules.md` / `troubleshooting.md` #32–#37。
 
 ## 3. 启动（两条铁律）
 

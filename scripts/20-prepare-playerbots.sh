@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# 20-prepare-playerbots.sh —— 把 playerbots 与四个外观/天赋模块挂进 mangos-classic
+# 20-prepare-playerbots.sh —— 把 playerbots 与五个功能模块（四外观/天赋 + immersive 进度共享）挂进 mangos-classic
 #
 # 背景（务必理解，详见 docs/02-source-layout.md / docs/09-modules.md）：
 #   1) core 的 CMake 与 classic-db 的 InstallFullDB.sh 都硬编码引用
@@ -16,9 +16,9 @@
 #      out-of-tree 二元目录改动【已提交进 fork 主分支】，本脚本只做
 #      "在位校验"：不在位时说明当前检出不是 fork 主分支形态，给出诊断而非
 #      自动打档。
-#   4) 开 BUILD_MODULES 后，四个功能模块 + cmangos-modules 框架同样要求
-#      src/modules/<folder>/CMakeLists.txt 已在位。本脚本只做用户侧软链接，
-#      不替你克隆、不从 ../cmangos-* 自动发现。缺目录则报错退出。
+#   4) 开 BUILD_MODULES 后，五个功能模块 + cmangos-modules 框架同样要求
+#      src/modules/<folder>/CMakeLists.txt 已在位。本脚本只做用户侧软链
+#      接，不替你克隆、不从 ../cmangos-* 自动发现。缺目录则报错退出。
 #
 # 用法（在父目录）：bash scripts/20-prepare-playerbots.sh
 #   可用 WOW_ROOT 环境变量指定父目录，如：WOW_ROOT=$HOME/wow bash scripts/20-...
@@ -92,6 +92,7 @@ transmog cmangos-transmog
 dualspec cmangos-dualspec
 achievements cmangos-achievements
 barber cmangos-barber
+immersive cmangos-immersive
 EOF
 
 echo ""

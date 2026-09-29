@@ -3,14 +3,19 @@
 # 45-install-module-sql.sh —— 导入四个外观/天赋模块的世界库 SQL
 #
 # 前提：InstallFullDB 已完成（四个库在位）；20 号已挂好模块软链接。
-# 只导入世界库，导入后不做任何 UPDATE（水晶模型/坐标见 docs/troubleshooting.md）。
-# 不导入角色库：角色库脚本会 DROP 进度表，需要时手工导入并先备份。
+# 只导入世界库（例外：immersive 的角色库首装自建表，见下），导入后不做任何
+# UPDATE（水晶模型/坐标见 docs/troubleshooting.md）。
+# 除 immersive 自建表外不导入角色库：dualspec/achievements 的角色库脚本会
+# DROP 进度表，需要时手工导入并先备份。
 #
 # 导入清单：
 #   transmog / dualspec  → sql/install/world/world.sql
 #   achievements         → 01_world_data.sql 再 02_world_update.sql
 #                          （跳过西班牙文 03_world_locales.sql）
 #   barber               → world_classic.sql（不要 world_tbc.sql）
+#   immersive            → sql/install/world/world.sql（npc_text/mangos_string，
+#                          DELETE+INSERT 可重跑）+ characters 库首装自建表
+#                          custom_immersive_values（表在位则跳过，防重置属性值）
 #   zhCN supplements     → classic-db/locales/Chinese/supplements/01..05_*.sql
 #                          （补缺/纠错 loc4；ON DUPLICATE KEY UPDATE，可重跑）
 #
@@ -46,6 +51,7 @@ MYSQL_PORT="${MYSQL_PORT:-3306}"
 MYSQL_USERNAME="${MYSQL_USERNAME:-mangos}"
 MYSQL_PASSWORD="${MYSQL_PASSWORD:-mangos}"
 WORLD_DB_NAME="${WORLD_DB_NAME:-classicmangos}"
+CHAR_DB_NAME="${CHAR_DB_NAME:-classiccharacters}"
 
 if ! command -v "$MYSQL_BIN" >/dev/null 2>&1; then
   echo "[ERROR] mysql client not found (MYSQL_PATH=$MYSQL_BIN)"
@@ -89,6 +95,35 @@ else
   import_sql "barber classic"     "$MOD/barber/sql/install/world/world_classic.sql"
 fi
 
+# immersive：world 侧直接导（DELETE+INSERT，可重跑）；characters 侧是模块自建表
+# （不碰标准表）——首装导入，已存在则跳过（避免重跑时重置已配置的属性值）。
+# 注意：immersive 的 uninstall/characters.sql 表名写的是 immersive_values，与
+# 实际建的 custom_immersive_values 不符（上游小瑕疵）——卸载时手动 DROP 后者。
+import_sql "immersive world"     "$MOD/immersive/sql/install/world/world.sql"
+MYC=("$MYSQL_BIN" -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USERNAME" --default-character-set=utf8mb4 "$CHAR_DB_NAME")
+if ! "${MYC[@]}" -e "SELECT 1;" >/dev/null 2>&1; then
+  echo "[ERROR] Cannot connect to $CHAR_DB_NAME as $MYSQL_USERNAME@$MYSQL_HOST:$MYSQL_PORT"
+  echo "        Check CHAR_DB_NAME or MYSQL_* env vars / InstallFullDB.config"
+  exit 1
+fi
+import_sql_chars() {
+  local label="$1"
+  local file="$2"
+  if [[ ! -f "$file" ]]; then
+    echo "[ERROR] Missing SQL: $file"
+    exit 1
+  fi
+  echo "==> Importing $label: $file"
+  "${MYC[@]}" < "$file"
+  echo "[OK]  $label"
+}
+IMM_N=$("${MYC[@]}" -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='custom_immersive_values';" 2>/dev/null || echo 0)
+if [[ "${IMM_N//[^0-9]/}" -gt 0 ]]; then
+  echo "[SKIP] immersive characters (custom_immersive_values already present)"
+else
+  import_sql_chars "immersive characters" "$MOD/immersive/sql/install/characters/characters.sql"
+fi
+
 # 主中文包由 40 号在库空时导入 locales/Chinese/*.sql；此处补缺/纠错（含任务 707）。
 SUPP="$DBREPO/locales/Chinese/supplements"
 if [[ -d "$SUPP" ]]; then
@@ -105,7 +140,7 @@ else
 fi
 
 echo ""
-echo "Done (world SQL only; no character SQL, no DisplayId/coord patches)."
+echo "Done (five modules' world SQL + immersive characters table only; no DisplayId/coord patches)."
 echo "Config Enable: scripts/60-start-server.sh (first-time .conf from .dist)."
 echo "Dual-spec crystal invisible? See docs/troubleshooting.md (DisplayId / wall coords / creature_respawn)."
 echo "Next: docs/09-modules.md verify steps, then scripts/60-start-server.sh"

@@ -39,7 +39,8 @@
 | 33 | 改完 DisplayId / 坐标并重启，原 guid（如 9000423）仍看不见；`.npc add 100601` 却能看见 | 角色库里有**未到期重生**记录。表是 **`classiccharacters.creature_respawn`**（不是 `classicmangos`）。`LoadFromDB` 见未来时间戳会建成死亡态（血量 0），你面前没人。清理：`DELETE FROM classiccharacters.creature_respawn WHERE guid IN (9000423, 9000424);` 再重启。`.npc add` 用的是新 static guid，没有这条记录，所以能看见且会持久化 |
 | 34 | `.npc move 9000423` 提示成功，当场仍看不见 | 怪**未加载到当前地图**时，该命令只写世界库 `creature` 坐标，**不**在你脚下刷出实体；内存里的旧坐标要**重启 mangosd** 才更新。另：`.go creature 9000423` 按 **db guid** 传送；`.go creature id 100601` 会落到任意一只已加载的 100601（常是你 `.npc add` 出来的那只），不能证明原 guid 已刷出 |
 | 35 | 想清掉 `.npc add` 出来的多余水晶 | 选中后 `.npc delete`，或 `.npc delete <dbGuid>`（对象须在当前地图已加载）。也可 `DELETE FROM classicmangos.creature WHERE guid=<新guid>;` 后重启 |
-| 36 | 45 号只导了世界 SQL；双天赋/成就进度表没有 | **刻意不导角色库**——`sql/install/characters/*.sql` 会 `DROP TABLE IF EXISTS` 进度表。需要时手工导入并先 `mysqldump classiccharacters`。见 `09-modules.md` |
+| 36 | 45 号只导了世界 SQL；双天赋/成就进度表没有 | **刻意不导角色库**——dualspec/achievements 的 `sql/install/characters/*.sql` 会 `DROP TABLE IF EXISTS` 进度表。需要时手工导入并先 `mysqldump classiccharacters`。（例外：immersive 的 characters.sql 是模块自建表，45 号首装自动导入。）见 `09-modules.md` |
+| 37 | immersive 的任务/声望没共享到小号 | 三因排查：① 交任务/涨声望的当下小号**没有以 bot 在线**（任务共享只对 bot 形式的小号生效；把小号组进 bot 队再交任务）——声望共享无此要求（离线小号登录时合并）；② 该任务**带职业限定**（上游刻意不跨职业共享）；③ 想"开门用"但门要的是**钥匙物品**（如黑上印记）——任务状态共享不含奖励物品，小号仍需自拿或 GM `.additem` 补发。语义总览见 `09-modules.md` §8 |
 
 ## 与本体系和上游的关系
 

@@ -18,13 +18,13 @@
 | `docs/06-configure-and-run.md` | 配置文件、两条启动铁律、**启动日志通关判读**、建号 |
 | `docs/07-client.md` | 客户端接入（realmlist、版本匹配、防火墙）与 playerbots 上手 |
 | `docs/08-character-migration.md` | **角色数据迁移**（源服 → 目标服：迁什么不迁什么、playerbots 开发者须知、版本守门、种子账号替换语义；含"源端只剩 dump 文件"的 repack 桥接） |
-| `docs/09-modules.md` | **四个外观/天赋模块**（transmog / dualspec / achievements / barber）：克隆、三层软链接、编译开关、世界 SQL、Enable、启动日志验证 |
+| `docs/09-modules.md` | **五个功能模块**（transmog / dualspec / achievements / barber + immersive 跨号进度共享）：克隆、三层软链接、编译开关、SQL、Enable、启动日志验证 |
 | `docs/troubleshooting.md` | 坑位速查表（每条都实机踩过/验证过；含双天赋水晶不可见） |
 | `scripts/10-install-deps.sh` | 一键 apt 依赖（sudo） |
-| `scripts/20-prepare-playerbots.sh` | PlayerBots + 五个模块软链 + out-of-tree 在位校验（幂等，不打档——fork 自带） |
-| `scripts/30-build-server.sh` | 配置+编译+安装（默认 gcc-12；模块版 AHBot 随 playerbots 默认编入 + 四模块；`BUILD_AHBOT=ON` 才会切到 core 内置老版（不推荐）） |
+| `scripts/20-prepare-playerbots.sh` | PlayerBots + 六个模块软链（框架 + 五个功能模块）+ out-of-tree 在位校验（幂等，不打档——fork 自带） |
+| `scripts/30-build-server.sh` | 配置+编译+安装（默认 gcc-12；模块版 AHBot 随 playerbots 默认编入 + 五模块（含 immersive 跨号共享）；`BUILD_AHBOT=ON` 才会切到 core 内置老版（不推荐）） |
 | `scripts/40-prepare-database.sh` | MySQL 就绪/auth_socket 处理/装库开关兜底（PLAYERBOTS_DB、AHBOT）+ 装后直连 MySQL 自动验收（sudo；全装路线与确认词打印） |
-| `scripts/45-install-module-sql.sh` | 导入四个模块的世界库 SQL（不导角色库、不改水晶 DisplayId/坐标） |
+| `scripts/45-install-module-sql.sh` | 导入五个模块的世界库 SQL（immersive 另首装角色库自建表；不改水晶 DisplayId/坐标） |
 | `scripts/50-extract-client-data.sh` | 提取包装：工具就位→跑官方 ExtractResources→产物回拷（含 mmaps 缺失降级） |
 | `scripts/60-start-server.sh` | 双进程启动（缺 .conf 自动从 .dist 补齐；模块 conf 首次生成时打开 Enable） |
 | `scripts/70-export-character-data.sh` | 【源端】角色数据导出：characters 整库 + realmd 三表 + manifest（SRP6 原密码随行） |
@@ -43,20 +43,20 @@ git clone https://github.com/haisheng2017/playerbots.git     playerbots
 git clone <本指导包仓库.git>		                          single-player-project-for-WoW
 # 模块（本流程默认编入；完整 clone 命令见 docs/09）：
 # git clone https://github.com/flekz-games/cmangos-modules.git cmangos-modules
-# … transmog / dualspec / achievements / barber
+# … transmog / dualspec / achievements / barber / immersive（跨号进度共享）
 
-# 1) 系统依赖（Ubuntu 22.04, amd64）+ 2) 模块挂载（PlayerBots + 四个功能模块软链）
+# 1) 系统依赖（Ubuntu 22.04, amd64）+ 2) 模块挂载（PlayerBots + 五个功能模块软链）
 sudo bash single-player-project-for-WoW/scripts/10-install-deps.sh
 bash     single-player-project-for-WoW/scripts/20-prepare-playerbots.sh
 
-# 3) 编译（产物 → ./run；含 BUILD_MODULES 与四个 BUILD_MODULE_*）
+# 3) 编译（产物 → ./run；含 BUILD_MODULES 与五个 BUILD_MODULE_*）
 bash     single-player-project-for-WoW/scripts/30-build-server.sh
 
 # 4) 数据库预备 + 按脚本尾部的指引人工走完交互菜单（文档 05 全程对照）
 sudo bash single-player-project-for-WoW/scripts/40-prepare-database.sh
 cd classic-db && bash InstallFullDB.sh    # 菜单路线与确认词陷阱：务必先读 05 第 2.3 节
 
-# 4b) 四个模块的世界 SQL（不导角色库；水晶 DisplayId 见 troubleshooting）
+# 4b) 五个模块的 SQL（世界库全量 + immersive 角色库自建表首装；水晶 DisplayId 见 troubleshooting）
 cd .. && bash     single-player-project-for-WoW/scripts/45-install-module-sql.sh
 
 
