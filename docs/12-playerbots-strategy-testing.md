@@ -285,3 +285,51 @@ reset ai                      连 AI 记忆/存档一起清（最后手段,见 d
 **上手三连**：场景 0 自检（五分钟）→ 场景 1 用 `co ±threat` 感受 A/B → 场景 6 写下你的第一条自定义策略。
 
 **和其他篇的关系**：docs/10 给原理与语法；docs/11 给"应该发生什么"的行动目录；本文管"怎么证明它发生了"。脚本与运行环境（docs/06）不再在此重复。
+
+## 12. 附：仓库自带的剧本测试挂具（默认未启用）
+
+读到这里你多半已经注意到：playerbots 源码里躺着 `strategy/tests/` 一族和 `BotTests.cpp`——"这是不是现成的 unittest？本文这套手动活能不能交给它？"答案分三层。
+
+**它是什么**：不是 googletest 意义上的单元测试——是一套**剧本化的在线整合测试跑龙器**。剧本（test）= 台词表，写法与本文的五段模板**同构**（搭台→诱发→断言→收）；挂法走策略名 `test::<剧本名>`（§10 §4 说的"名字::参数"机制），由一个叫 `"test"` 的动作在 bot 平时脑里每拍解读一行。`monitor`（监视）行即断言：观察期里每拍全查一遍，第一件成立的按 `=> pass | fail | abort` 定案收工；剧本走完无断言也算 PASS。断言家族里最有力的是**状态值比较器**——可对任意 AI 状态值比大小，与 §2 `cdebug values` 看的是同一本账；另有"怪物 <编号> 已死""bot 喊过某句话""坐标/装备/任务状态"等现成断言。剧本行还认两种外快：`.` 开头=让这个 bot 原地执行 GM 命令、其余=当密语命令走本文 §5 的老路——**搭台的弹药库与本文完全同一套**。
+
+**一条真实剧本**（选它正是因为最"流程验证"、不涉战斗）：
+
+```text
+（playerbots/…/strategy/tests/RegisterRpg.cpp · bank_deposit_flow，节选）
+ require bot is level=22 class=warrior race=human    ← 前置：挑一台合格 bot
+ nc -travel                                          ← 卸包，免得它先跑去别处
+ give 3840                                           ← 发一件该入银行的绿装
+ teleport Ironforge bank                             ← 传进铁炉堡银行
+ set value GuidPosition rpg target => closest entry::2461   ← 替它把"下一步跟谁"
+ set value string next rpg action => rpg bank deposit       ← 写进状态值（§2 setvalue 思想同源）
+ monitor value uint32 bank item count::3840 > 0 => pass "Item deposited to bank"   ← 断言
+ monitor time > 20 => fail "Deposit timed out"       ← 超时兜底
+ observe                                             ← 进入观察，等 monitor 定案
+```
+
+（剧本里还留着一行注释掉的 `"nc +debug"`——上游作者调剧本用的就是本文 §3 那套播报。剧本库另有几千条自动生成的出生/换装/跑图/全副本 boss 冒烟剧本。）
+
+**启用后怎么跑**：解开闸门（下述）整编后——
+
+```text
+.bot test <剧本名>                  现成 bot 上跑
+.rndbot runtest <剧本名片段> [数量]  从总管池排期：给剧本造临时 bot 跑，跑完即删
+AiPlayerbot.RunTest.1 = <剧本名>     conf 写一行，开机自动跑
+```
+
+并发上有两道闸：全局并行的临时测试 bot 上限 50、走你账号路径时每账号 9 角上限。结果三通道落账：bot 密语回 `[TEST] … PASS`、控制台 `[BOTTEST] | bot | test | PASS | …`、日志文件 `bot_test_results.log`；`BotTests.cpp` 再把这些日志**离线**汇总成 CSV/HTML 历史——它不出题、不监考，只出报表，别指望它是跑者。
+
+**启用成本与如实警告**：闸门是 `playerbots/playerbot/PlayerbotAIAware.h:9` 那行 `//#define GenerateBotTests`（上游自注"仅启用以生成测试"）——解开它 + 容器里 30 号整编。不用它时无感（注册表多一行名而已）；真跑起来观察期监视器每拍全查（怪亡断言甚至做全图扫描），CPU 可观——这正是 50 上限的由来。另两条坑：剧本库里**DK 起步区一族在 1.12 是死套**；上游曾用一组 diag 剧本追 spawn 路径上的**libmysql 崩溃**——大规模并发跑之前先小剂量冒烟。
+
+**能否替代本文手动法**：不能——互补。差距四条：新剧本要改 C++ 字符串字面量并重编（无外部剧本文件）；断言是"状态/世界侧"，**没有"断言某动作触发了"的监视器**（引擎里另有一套 testMode→test.log 的动作日志，但从无人置位，死码）；一次一跑耗真实服务器时间（分钟到小时级）；无进程退出码那样的 CI 判定，成绩在日志里。
+
+| 维度 | 手动法（本文主体） | 剧本挂具（本节） |
+|---|---|---|
+| 出一条新测试 | 30 秒，密语即写即试 | 改代码 + 整编 |
+| 断什么 | 播报流 `do:`/`try:`（行为本身） | 状态值与世界结果（行为的后果） |
+| 复跑 | 人工搭台 | **一条命令机器搭台—回归正解** |
+| 产出 | 你眼里的判断 | 机器判分 + 日志 + HTML 报告 |
+
+一句话分工：**探针用手动，回归用剧本**。将来你真写了副本 boss 策略（docs/10 §9），最稳路线正是：§8 场景 5 手动排演通过 → 把同一套搭台/判分折成一条剧本扔进 `RegisterInstance` 那族反复跑。
+
+本节锚点：闸门 playerbots/playerbot/PlayerbotAIAware.h:8-10；注册开关 playerbots/playerbot/strategy/StrategyContext.h:186-188；剧本范例 …/strategy/tests/RegisterRpg.cpp:22-45；跑者与五态（PENDING/IMPOSSIBLE/PASS/FAIL/ABORT）…/strategy/tests/TestContext.h:14-21 + TestAction.cpp；runtest/并发 50 playerbots/playerbot/PlayerbotMgr.cpp:121-123,2218，2403；conf 键 PlayerbotAIConfig.cpp:313-348；对照死码（testMode）…/strategy/Engine.cpp:19,772。
