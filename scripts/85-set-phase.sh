@@ -30,14 +30,15 @@
 # 环境变量（与 40/70 号同风格）：
 #   WOW_ROOT（默认当前目录，应含 run/）   WORLD_DB（默认 classicmangos）
 #   MYSQL_HOST/MYSQL_PORT（默认 localhost:3306）
-#   MYSQL_USER（默认 mangos）  MYSQL_PASS（缺省静默提示）  MYSQL_BIN / MYSQL_DUMP_BIN
+#   MYSQL_USER / MYSQL_PASS（不做默认假设——真实执行时逐项交互输入；写脚本/CI 可用环境变量预置）
+#   MYSQL_BIN / MYSQL_DUMP_BIN
 set -euo pipefail
 
 WOW_ROOT="${WOW_ROOT:-$(pwd)}"
 WORLD_DB="${WORLD_DB:-classicmangos}"
 MYSQL_HOST="${MYSQL_HOST:-localhost}"
 MYSQL_PORT="${MYSQL_PORT:-3306}"
-MYSQL_USER="${MYSQL_USER:-mangos}"
+MYSQL_USER="${MYSQL_USER:-}"
 MYSQL_PASS="${MYSQL_PASS:-}"
 MYSQL_BIN="${MYSQL_BIN:-mysql}"
 DUMP_BIN="${MYSQL_DUMP_BIN:-mysqldump}"
@@ -117,9 +118,12 @@ declare -A PHASE_NOTE=(
     [5]="P5：安其拉之门待敲——真实物资路或 .worldstate wareffort phase 3 二选一，见 docs/16 §7"
     [6]="P6：纳克萨玛斯开门（附魔=任务 9378+银色黎明）；天灾入侵按 docs/16 §8 用 .worldstate 导演" )
 
-# ---- DB 连接（40/70 号同风格：凭据不进命令行） ----
-if [[ -z "$MYSQL_PASS" && $DRY_RUN -eq 0 ]]; then
-    read -r -s -p "MySQL 密码（用户 ${MYSQL_USER}，静默输入）: " MYSQL_PASS; echo
+# ---- DB 连接（凭据不进命令行；账号密码都交给交互输入，不替你假设） ----
+# 不知道账号密码？它们就写在服务器配置里：grep DatabaseInfo run/etc/mangosd.conf
+# ——四条数据线的格式是 主机;端口;用户;密码;库（docs/06 §2）。
+if [[ $DRY_RUN -eq 0 ]]; then
+    [[ -z "$MYSQL_USER" ]] && read -r -p "MySQL 用户（mangos 或 root 等）: " MYSQL_USER
+    [[ -z "$MYSQL_PASS" ]] && { read -r -s -p "MySQL 密码（静默输入）: " MYSQL_PASS; echo; }
 fi
 export MYSQL_PWD="$MYSQL_PASS"
 MYDB=("$MYSQL_BIN" -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USER")

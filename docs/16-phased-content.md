@@ -116,10 +116,12 @@ bash scripts/85-set-phase.sh 6 && .server restart 30     # Naxx 入口（4156）
 ## 9. 85 号脚本 · 用法与快照契约
 
 ```bash
-bash scripts/85-set-phase.sh --dry-run all       # 预演六阶段全部 SQL（零落库）
+bash scripts/85-set-phase.sh --dry-run all       # 预演六阶段全部 SQL（零落库，也不问凭据）
 bash scripts/85-set-phase.sh <1-6>               # 切阶段（首跑自动快照）
 bash scripts/85-set-phase.sh --restore           # 从快照完全还原（幂等 INSERT IGNORE）
-# 凭据约定与 40/70 号同流：MYSQL_HOST/PORT/USER/PASS（缺省静默提示）、WORLD_DB（默认 classicmangos）、WOW_ROOT
+# 凭据：账号、密码逐项交互输入（也可用 MYSQL_HOST/PORT/USER/PASS 环境变量预置）
+#       忘了账号密码 → grep DatabaseInfo run/etc/mangosd.conf（格式 主机;端口;用户;密码;库）
+# 其余：WORLD_DB（默认 classicmangos）、WOW_ROOT（含 run/ 的目录）
 ```
 - **声明式幂等**：每次运行写的是目标阶段的全量期望状态——直跳不漏开关、重跑无副作用；**角色库零写入**（角色/装备/任务/副本进度/荣誉一概不碰），任何阶段 `--restore+重启` 都能回出厂。
 - **首跑先快照**（真实执行的第一次）：四张受影响表的相关行 →`run/backup/phase-snapshot.sql`（存在永不覆盖）+ 幂等还原卷。期间手工的演出（P4 放的绿龙等）不属快照——另行 mysqldump（docs/15 §3）。
