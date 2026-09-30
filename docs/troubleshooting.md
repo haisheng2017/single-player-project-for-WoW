@@ -23,7 +23,7 @@
 | 17 | 升级 core 后连库报 `db_version` 相关不匹配 | core 比库新——`InstallFullDB.sh` 菜单 `3) Install core updates only` 应用 core `sql/updates/`；反向（库比 core 新）则重新编译 core |
 | 18 | 想清库重来 | `InstallFullDB.sh` → `5) Advanced → 7) Delete all databases and users`（确认词 `DeleteAll`）再全装 |
 | 19 | `make install` 后 `run/etc` 里没有 `aiplayerbot.conf.dist` | 该文件由 playerbots 模块自身的 install 规则装入（`playerbots/CMakeLists.txt`）——没开 `BUILD_PLAYERBOTS` 就不会有；确认编译参数 |
-| 20 | 玩家数据位置 / 备份 | 角色背包邮件等都在 `classiccharacters` 库；`mysqldump classiccharacters > backup.sql`（导入 `mysql classiccharacters < backup.sql`） |
+| 20 | 玩家数据位置 / 备份 | 角色背包邮件等都在 `classiccharacters` 库；`mysqldump classiccharacters > backup.sql`（导入 `mysql classiccharacters < backup.sql`）。完整分层备份（world 自定义改动与 realmd 账号库也该保）与保留策略 → `15-operations-and-experience.md` §3 |
 | 21 | fork 同步上游主分支后构建异常 | 同步后**先重跑 `20-prepare-playerbots.sh`**（重建软链接 + 校验 fork 定制在位；`src/CMakeLists.txt` 若冲突出现在 `add_subdirectory` 处，保留 fork 侧带二元目录参数的形态），再 `30` 号脚本增量编译 |
 | 22 | 同步上游后 InstallFullDB 菜单/流程与本文档描述不符 | 上游重构了安装脚本——以脚本实跑表现为准，并回勘修订 `05-database.md`（菜单实录），差异处多为编号位移，逐字确认词机制不变 |
 | 23 | 角色迁移后账号登录被拒 | 70 号按表级 dump 迁 `account`（SRP6 `v`/`s` 随行，原密码有效）；排查源 dump 是否早于玩家改密时间——重新导一份新 dump；详见 `08-character-migration.md` 第 8 节 |
@@ -41,6 +41,7 @@
 | 35 | 想清掉 `.npc add` 出来的多余水晶 | 选中后 `.npc delete`，或 `.npc delete <dbGuid>`（对象须在当前地图已加载）。也可 `DELETE FROM classicmangos.creature WHERE guid=<新guid>;` 后重启 |
 | 36 | 45 号只导了世界 SQL；双天赋/成就进度表没有 | **刻意不导角色库**——dualspec/achievements 的 `sql/install/characters/*.sql` 会 `DROP TABLE IF EXISTS` 进度表。需要时手工导入并先 `mysqldump classiccharacters`。（例外：immersive 的 characters.sql 是模块自建表，45 号首装自动导入。）见 `09-modules.md` |
 | 37 | immersive 的任务/声望没共享到小号 | 三因排查：① 交任务/涨声望的当下小号**没有以 bot 在线**（任务共享只对 bot 形式的小号生效；把小号组进 bot 队再交任务）——声望共享无此要求（离线小号登录时合并）；② 该任务**带职业限定**（上游刻意不跨职业共享）；③ 想"开门用"但门要的是**钥匙物品**（如黑上印记）——任务状态共享不含奖励物品，小号仍需自拿或 GM `.additem` 补发。语义总览见 `09-modules.md` §8 |
+| 38 | 怪物穿墙/飞上高台/遁入地下/隔层被打掉血（副本内尤甚），或 bot 走位同样诡诈 | 先查数据（半分钟）：`run/bin/mmaps` 目录存在吗、有没有你所在图号的 `.mmap/.mmtile`；`Server.log` grep `MMAP:` 看有没有 `Could not open mmap file`——**缺/残 mmaps 时不只 bot，一切单位（怪）寻路都退化为直线**（启动日志的 `MMap pathfinding enabled` 只证明配置开、不证明数据在）。机理、逐症状确认法与数据/conf/补丁三层修复路线见 `13-mob-movement-and-aggro.md` |
 
 ## 与本体系和上游的关系
 

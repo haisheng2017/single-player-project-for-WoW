@@ -22,6 +22,10 @@
 | `docs/10-playerbots-principles.md` | **playerbots 原理图解**：分身与一拍流水线、四台引擎与反射层、名字/装卸语法、文本自定义策略、副本 Boss 策略路线（面向控制/配策略/定制开发；命令全表见 playerbots 仓库 README） |
 | `docs/11-playerbots-engine-actions.md` | **引擎行动目录**：四台引擎出厂逐台盘点（通用包/角色位/九职业默认包速查表），切台真相与"喝水触发器"等各类反直觉 |
 | `docs/12-playerbots-strategy-testing.md` | **策略实测手册**：观察/施压/造景/复位四象限 + 七场景五段模板（战斗 A/B、反射机关、躺尸、吃喝、副本 Boss 排演、custom 闭环） |
+| `docs/13-mob-movement-and-aggro.md` | **怪物寻路与仇恨机理**：寻路三段链与直线降级阶梯、副本特化病灶（逃脱 400 码闪现、无 leash）、近战 2D 判定与仇恨链、症状对照 + 排障手册（数据三查、`.movement debug` 观测器、修复分层路线） |
+| `docs/14-config-reference.md` | **配置语义全解**：四份主 conf + 五模块 conf 的字典型盘点——mangosd 17 族全键、aiplayerbot 13 族与 3206 键巨表结构、八条"注释与代码不符"勘误、生效面矩阵（`.reload config` 热载边界） |
+| `docs/15-operations-and-experience.md` | **运维与玩法手册**：开关机/备份/日志/更新/公网化清单 + 单机爽点配方套餐 + 性能三档 sizing + 特色功能宝库（LLM 聊天、装备进阶、self-bot、WorldBuff 处方、immersive 跨号养成） |
+| `docs/16-phased-content.md` | **P1–P6 分阶段开服**：官方 2019 六阶段节奏逐幕开放——副本入口/战场模板/世界boss/事件四门闩，AQ 战争物资与天灾入侵的原生导演手册 |
 | `docs/troubleshooting.md` | 坑位速查表（每条都实机踩过/验证过；含双天赋水晶不可见） |
 | `scripts/10-install-deps.sh` | 一键 apt 依赖（sudo） |
 | `scripts/20-prepare-playerbots.sh` | PlayerBots + 六个模块软链（框架 + 五个功能模块）+ out-of-tree 在位校验（幂等，不打档——fork 自带） |
@@ -32,6 +36,7 @@
 | `scripts/60-start-server.sh` | 双进程启动（缺 .conf 自动从 .dist 补齐；模块 conf 首次生成时打开 Enable） |
 | `scripts/70-export-character-data.sh` | 【源端】角色数据导出：characters 整库 + realmd 三表 + manifest（SRP6 原密码随行） |
 | `scripts/80-import-character-data.sh` | 【目标端】导入：版本守门 + 确认词 + 整库替换（支持 --dry-run 预演） |
+| `scripts/85-set-phase.sh` | P1–P6 阶段切换（声明式幂等：副本入口/战场模板/世界boss/暗月马戏团；首跑自动快照，`--dry-run` 预演、`--restore` 还原——配 docs/16） |
 
 ## 快速开始
 

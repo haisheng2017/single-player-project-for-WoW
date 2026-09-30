@@ -42,7 +42,7 @@ cp aiplayerbot.conf.dist aiplayerbot.conf    # playerbots 模块已随 make inst
 
 `aiplayerbot.conf`：
 
-- `AiPlayerbot.Enabled = 1`（模板默认已开）；bot 数量/行为可调项的**族类地图**（随机 bot 生命周期、职业配比、出厂策略、AI 手感、聊天风味）见 `docs/10-playerbots-principles.md` §7；逐键说明以 playerbots 仓库 README 为准，先用默认体验即可。
+- `AiPlayerbot.Enabled = 1`（模板默认已开）；bot 数量/行为可调项的**族类地图**（随机 bot 生命周期、职业配比、出厂策略、AI 手感、聊天风味）见 `docs/10-playerbots-principles.md` §7；**逐键字典见 `docs/14-config-reference.md`**（哪些键能 `.reload config` 热载、哪些必须重启也在那一篇），先用默认体验即可。
 
 `ahbot.conf`（默认开箱可用——默认跑的是 **playerbots 模块版 AhBot**，读本文件 `AhBot.*` 键；文件内另一组 `AuctionHouseBot.*` 键属 core 内置老版（`BUILD_AHBOT=ON` 才编入），模板已将其置 0 禁用）：
 

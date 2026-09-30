@@ -108,6 +108,8 @@ cp immersive.conf.dist immersive.conf    # Enable=1 + AccountReputation/SharedQu
 
 改配置后需**重启 mangosd**（进程内不热加载这些 conf）。
 
+> 五份模块 conf 的读取机制（按工作目录相对的 `../etc/<模块名>.conf` 解析；`cmangos-modules/modules.conf` 只是上游流程的 git URL 清单、非运行时配置）与**全键字典**见 `docs/14-config-reference.md` §6。
+
 ## 6. 启动日志通关
 
 mangosd 启动接近 `CMANGOS: World initialized` 之前应依次（或相近）出现：

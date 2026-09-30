@@ -49,7 +49,7 @@ cp -R ~/client112/{dbc,maps,vmaps,mmaps} run/bin/
 |---|---|---|---|
 | `maps` + `dbc` | 分钟级 | 服务器启动**必需** | ❌ |
 | `vmaps` | 十分钟级 | 视线/建筑碰撞、室内判定 | 建议 |
-| `mmaps` | **数十分钟到数小时**（CPU 密集，`nproc` 越多越快） | bot 寻路（Recast/Detour 网格） | ✅ 可先跳过，之后补提（只影响 bot 寻路智能） |
+| `mmaps` | **数十分钟到数小时**（CPU 密集，`nproc` 越多越快） | **一切单位**的寻路网格（Recast/Detour）——怪物/bot 共用；缺失或半成品时全部退化为直线移动 | ✅ 可先跳过，之后补提（跳过期间怪的行走质量肉眼可见地劣化——见 docs/13） |
 
 ## arm64 Ubuntu 的特别说明
 
