@@ -34,6 +34,14 @@
 #   MYSQL_BIN / MYSQL_DUMP_BIN
 set -euo pipefail
 
+# bash ≥ 4（关联数组所需）：Ubuntu/容器内置 5.x 天然满足；macOS 自带 3.2 在这里会
+# 从"无声哑火"变成"明确指路"——进容器跑，或用 brew 装的新版 bash。
+if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 ]]; then
+    echo "[错误] 本脚本需要 bash 4+（关联数组）——当前解释器 ${BASH_VERSION:-未知}。"
+    echo "       请在服务器/容器内运行(WOW_ROOT 所在处)，或换用新版 bash 再跑。"
+    exit 1
+fi
+
 WOW_ROOT="${WOW_ROOT:-$(pwd)}"
 WORLD_DB="${WORLD_DB:-classicmangos}"
 MYSQL_HOST="${MYSQL_HOST:-localhost}"
@@ -111,12 +119,12 @@ declare -A EV_CLOSED=(
 
 # ---- 阶段便签（尾声打印） ----
 declare -A PHASE_NOTE=(
-    [1]="P1：只剩 MC+奥妮——战场/厄运/元素入侵/其余团本/马戏团全闭（历史上玛拉顿随 P1 在场，未动）"
-    [2]="P2：厄运之槌开门、双世界boss+元素入侵回归、荣誉开张（战场仍闭——P2 的历史形态）"
-    [3]="P3：BWL + 战歌/奥特兰克两战场（注意：AB 是下一幕的事）+ 战场周 + 马戏团从此按月自开"
-    [4]="P4：祖格 + 阿拉希盆地（此刻三战场才齐）+ 钓鱼大赛开张；绿龙四王按 docs/16 §6 在四处梦境之门手工放出"
-    [5]="P5：安其拉之门待敲——真实物资路或 .worldstate wareffort phase 3 二选一，见 docs/16 §7"
-    [6]="P6：纳克萨玛斯开门（附魔=任务 9378+银色黎明）；天灾入侵按 docs/16 §8 用 .worldstate 导演" )
+    [1]="只剩 MC+奥妮——战场/厄运/元素入侵/其余团本/马戏团全闭（历史上玛拉顿随 P1 在场，未动）"
+    [2]="厄运之槌开门、双世界boss+元素入侵回归、荣誉开张（战场仍闭——P2 的历史形态）"
+    [3]="BWL + 战歌/奥特兰克两战场（注意：AB 是下一幕的事）+ 战场周 + 马戏团从此按月自开"
+    [4]="祖格 + 阿拉希盆地（此刻三战场才齐）+ 钓鱼大赛开张；绿龙四王按 docs/16 §6 在四处梦境之门手工放出"
+    [5]="安其拉之门待敲——真实物资路或 .worldstate wareffort phase 3 二选一，见 docs/16 §7"
+    [6]="纳克萨玛斯开门（附魔=任务 9378+银色黎明）；天灾入侵按 docs/16 §8 用 .worldstate 导演" )
 
 # ---- DB 连接（凭据不进命令行；账号密码都交给交互输入，不替你假设） ----
 # 不知道账号密码？它们就写在服务器配置里：grep DatabaseInfo run/etc/mangosd.conf
@@ -139,7 +147,7 @@ run_sql() { # dry 则打印，否则落库
 make_snapshot() { # 四张受影响表的行片快照（首跑一次；存在则跳过）
     [[ -e "$SNAP_FILE" ]] && { echo "[OK]  快照已存在，不覆盖：$SNAP_FILE"; return 0; }
     mkdir -p "$BACKUP_DIR"
-    echo "[1/5] 生成出厂快照（四表行片）→ $SNAP_FILE"
+    echo "[前置] 生成出厂快照（四表行片）→ $SNAP_FILE"
     {
         echo "-- phase-snapshot：85 号首跑时自动生成；还原请用 phase-restore.sql"
         "$DUMP_BIN" --no-create-info --no-tablespaces \
@@ -181,7 +189,9 @@ do_phase() {
     # ① 副本入口：关闭集合抬 61，其余五个团本+厄运六门回原生等级
     echo "[1/5] 副本入口（areatrigger_teleport）"
     if [[ -n "${AT_CLOSED[$p]}" ]]; then
-        run_sql "UPDATE areatrigger_teleport SET required_level=61 WHERE id IN (${AT_CLOSED[$p]})"
+        local closed_ids
+        closed_ids="$(echo "${AT_CLOSED[$p]}" | tr ' ' ',')"   # 空格清单→SQL 逗号清单
+        run_sql "UPDATE areatrigger_teleport SET required_level=61 WHERE id IN ($closed_ids)"
         echo "      关闭（门槛抬 61，60 封顶即无人可进）：${AT_CLOSED[$p]}"
     fi
     local id lvl
