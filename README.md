@@ -19,6 +19,9 @@
 | `docs/07-client.md` | 客户端接入（realmlist、版本匹配、防火墙）与 playerbots 上手 |
 | `docs/08-character-migration.md` | **角色数据迁移**（源服 → 目标服：迁什么不迁什么、playerbots 开发者须知、版本守门、种子账号替换语义；含"源端只剩 dump 文件"的 repack 桥接） |
 | `docs/09-modules.md` | **五个功能模块**（transmog / dualspec / achievements / barber + immersive 跨号进度共享）：克隆、三层软链接、编译开关、SQL、Enable、启动日志验证 |
+| `docs/10-playerbots-principles.md` | **playerbots 原理图解**：分身与一拍流水线、四台引擎与反射层、名字/装卸语法、文本自定义策略、副本 Boss 策略路线（面向控制/配策略/定制开发；命令全表见 playerbots 仓库 README） |
+| `docs/11-playerbots-engine-actions.md` | **引擎行动目录**：四台引擎出厂逐台盘点（通用包/角色位/九职业默认包速查表），切台真相与"喝水触发器"等各类反直觉 |
+| `docs/12-playerbots-strategy-testing.md` | **策略实测手册**：观察/施压/造景/复位四象限 + 七场景五段模板（战斗 A/B、反射机关、躺尸、吃喝、副本 Boss 排演、custom 闭环） |
 | `docs/troubleshooting.md` | 坑位速查表（每条都实机踩过/验证过；含双天赋水晶不可见） |
 | `scripts/10-install-deps.sh` | 一键 apt 依赖（sudo） |
 | `scripts/20-prepare-playerbots.sh` | PlayerBots + 六个模块软链（框架 + 五个功能模块）+ out-of-tree 在位校验（幂等，不打档——fork 自带） |

@@ -42,7 +42,7 @@ cp aiplayerbot.conf.dist aiplayerbot.conf    # playerbots 模块已随 make inst
 
 `aiplayerbot.conf`：
 
-- `AiPlayerbot.Enabled = 1`（模板默认已开）；bot 数量/行为的海量可调项（`MinRandomBots/MaxRandomBots` 等）参考 playerbots 仓库的 README 与官方 wiki 的 Playerbots 章节，先用默认体验即可。
+- `AiPlayerbot.Enabled = 1`（模板默认已开）；bot 数量/行为可调项的**族类地图**（随机 bot 生命周期、职业配比、出厂策略、AI 手感、聊天风味）见 `docs/10-playerbots-principles.md` §7；逐键说明以 playerbots 仓库 README 为准，先用默认体验即可。
 
 `ahbot.conf`（默认开箱可用——默认跑的是 **playerbots 模块版 AhBot**，读本文件 `AhBot.*` 键；文件内另一组 `AuctionHouseBot.*` 键属 core 内置老版（`BUILD_AHBOT=ON` 才编入），模板已将其置 0 禁用）：
 
@@ -96,7 +96,7 @@ account create <用户名> <密码>
 account set gmlevel <用户名> 3     # 0 玩家 / 1 Moderator / 2 GM / 3 Administrator
 ```
 
-playerbots 的进阶用法（把小号带成 bot、随机 bot 组队、指令表等）见 playerbots 仓库 README——先建一个号、进一次游戏，角色相关的 bot 玩法再展开。
+playerbots 的进阶用法（原理图解、策略装卸语法、文本自定义策略、副本 Boss 策略路线）见 `docs/10-playerbots-principles.md`；命令全表见 playerbots 仓库 README——先建一个号、进一次游戏，角色相关的 bot 玩法再展开。
 
 ## 6. 关服顺序
 

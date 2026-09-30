@@ -50,7 +50,7 @@ sudo ufw allow 8085/tcp     # mangosd（世界）
 2. 世界里也会出现**随机 bot**（由 `aiplayerbot.conf` 的 `MinRandomBots/MaxRandomBots` 决定在线数量）——可邀请组队下副本、配进战场；
 3. 首次启动时 bot 需要生成装备/名称等数据（见 06 的提示）。
 
-> 快速入门指令（follow / attack / quest share 等）与 command list 原文：playerbots 仓库 `README.md` 及其链接。
+> 快速入门指令（follow / attack / quest share 等）与 command list 原文：playerbots 仓库 `README.md` 及其链接。想知道 bot **为什么**这样动、如何装卸策略与写文本自定义：`docs/10-playerbots-principles.md`。
 
 ## 5. 日常开关机（单机玩法）
 
