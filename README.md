@@ -27,6 +27,7 @@
 | `docs/15-operations-and-experience.md` | **运维与玩法手册**：开关机/备份/日志/更新/公网化清单 + 单机爽点配方套餐 + 性能三档 sizing + 特色功能宝库（LLM 聊天、装备进阶、self-bot、WorldBuff 处方、immersive 跨号养成） |
 | `docs/16-phased-content.md` | **P1–P6 分阶段开服**：官方 2019 六阶段节奏逐幕开放——副本入口/战场模板/世界boss/事件四门闩，AQ 战争物资与天灾入侵的原生导演手册 |
 | `docs/troubleshooting.md` | 坑位速查表（每条都实机踩过/验证过；含双天赋水晶不可见） |
+| `patch/` | 对上游仓库游戏体验上的修改（`yyyymmdd-patch.md` 按日记录：改了什么、原样 → 改后） |
 | `scripts/10-install-deps.sh` | 一键 apt 依赖（sudo） |
 | `scripts/20-prepare-playerbots.sh` | PlayerBots + 六个模块软链（框架 + 五个功能模块）+ out-of-tree 在位校验（幂等，不打档——fork 自带） |
 | `scripts/30-build-server.sh` | 配置+编译+安装（默认 gcc-12；模块版 AHBot 随 playerbots 默认编入 + 五模块（含 immersive 跨号共享）；`BUILD_AHBOT=ON` 才会切到 core 内置老版（不推荐）） |
