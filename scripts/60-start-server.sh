@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# 60-start-server.sh —— 启动：realmd 后台守护，mangosd 前台接管（保留控制台）
+# 60-start-server.sh —— 启动：realmd 后台，mangosd 前台（保留控制台）
 #
 # 为什么要以 run/bin 为工作目录启动（重要）：
 #   mangosd 的 aiplayerbot.conf 是按"进程工作目录相对路径"（../etc/）自动加载
@@ -13,7 +13,9 @@
 #
 # 用法：  bash scripts/60-start-server.sh
 #   可选环境变量：WOW_ROOT（默认当前目录）
-# 停止：  前台 mangosd 用 Ctrl-C；后台 realmd 用 pkill realmd 或见下方提示
+# 停止：  前台 mangosd 用 Ctrl-C 或控制台 .server shutdown。脚本退出时会停掉
+#         本次启动的 realmd 并 wait，避免容器 pid 1 不收割时留下僵尸进程。
+#         3724 已被占用而跳过启动的那个 realmd 不属于本次，脚本不会动它。
 # 幂等：  重复运行会先检测端口占用；缺 .conf 时自动从 .dist 补齐（已存在的一
 #         律不覆盖，手改内容不会被碰到）
 # ==============================================================================
@@ -69,13 +71,26 @@ fi
 
 port_busy() { ss -ltn "sport = :$1" 2>/dev/null | grep -q LISTEN; }
 
+realmd_pid=""
+cleanup_realmd() {
+  local status=$?
+  trap - EXIT
+  if [[ -n "$realmd_pid" ]]; then
+    kill -INT "$realmd_pid" 2>/dev/null || true
+    wait "$realmd_pid" 2>/dev/null || true
+  fi
+  exit "$status"
+}
+
 if port_busy 3724; then
   echo "[提示] 3724 端口已被监听（realmd 可能已在运行），不再重复启动"
 else
   mkdir -p "$LOG_DIR"
   cd "$BIN"
-  nohup ./realmd -c ../etc/realmd.conf > ../log/realmd.log 2>&1 &
-  echo "[OK]  realmd 已后台启动（日志：run/log/realmd.log，停止：pkill realmd）"
+  ./realmd -c ../etc/realmd.conf > ../log/realmd.log 2>&1 &
+  realmd_pid=$!
+  trap cleanup_realmd EXIT
+  echo "[OK]  realmd 已后台启动（pid ${realmd_pid}，日志：run/log/realmd.log）"
   sleep 1
   port_busy 3724 && echo "[OK]  3724 监听确认" || echo "[警告] 3724 尚未监听，请看 run/log/realmd.log"
 fi
@@ -97,7 +112,8 @@ cat <<'EOF'
       account create <用户名> <密码>
       account set gmlevel <用户名> 3      （3=管理员，可自选）
     关服：Ctrl-C 或控制台 .server shutdown 30
+          本次脚本启动的 realmd 会在 mangosd 退出后一起停掉
 
 EOF
 cd "$BIN"
-exec ./mangosd -c ../etc/mangosd.conf
+./mangosd -c ../etc/mangosd.conf
