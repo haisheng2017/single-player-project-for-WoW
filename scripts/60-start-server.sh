@@ -13,8 +13,9 @@
 #
 # 用法：  bash scripts/60-start-server.sh
 #   可选环境变量：WOW_ROOT（默认当前目录）
-# 停止：  前台 mangosd 用 Ctrl-C 或控制台 .server shutdown。脚本退出时会停掉
-#         本次启动的 realmd 并 wait，避免容器 pid 1 不收割时留下僵尸进程。
+# 停止：  先停前台 mangosd（Ctrl-C 或控制台 .server shutdown）。realmd 用
+#         setsid 单独成组，收不到这个 Ctrl-C。mangosd 退出后脚本再对它发
+#         INT 并 wait，避免容器 pid 1 不收割时留下僵尸进程。
 #         3724 已被占用而跳过启动的那个 realmd 不属于本次，脚本不会动它。
 # 幂等：  重复运行会先检测端口占用；缺 .conf 时自动从 .dist 补齐（已存在的一
 #         律不覆盖，手改内容不会被碰到）
@@ -87,7 +88,9 @@ if port_busy 3724; then
 else
   mkdir -p "$LOG_DIR"
   cd "$BIN"
-  ./realmd -c ../etc/realmd.conf > ../log/realmd.log 2>&1 &
+  # 非交互脚本里后台进程和前台在同一进程组，Ctrl-C 会先把 realmd 一起杀掉。
+  # setsid 在子进程不是组长时原地 exec，$! 仍是 realmd。
+  setsid ./realmd -c ../etc/realmd.conf > ../log/realmd.log 2>&1 &
   realmd_pid=$!
   trap cleanup_realmd EXIT
   echo "[OK]  realmd 已后台启动（pid ${realmd_pid}，日志：run/log/realmd.log）"
@@ -112,7 +115,7 @@ cat <<'EOF'
       account create <用户名> <密码>
       account set gmlevel <用户名> 3      （3=管理员，可自选）
     关服：Ctrl-C 或控制台 .server shutdown 30
-          本次脚本启动的 realmd 会在 mangosd 退出后一起停掉
+          只打断 mangosd；它退出后脚本再停本次启动的 realmd
 
 EOF
 cd "$BIN"
